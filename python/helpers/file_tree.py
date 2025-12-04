@@ -296,7 +296,15 @@ def _directory_has_visible_entries(
     if cached is not None:
         return cached
 
+    # We must avoid deep recursive os.scandir chains because each nested call keeps
+    # a directory handle open until its stack frame unwinds, which can exhaust the
+    # process' file descriptor limit on large or deeply nested trees.
+    #
+    # To prevent this, we collect subdirectories that require deeper inspection
+    # while the scandir iterator is open, then close the iterator before
+    # performing any recursive calls.
     try:
+        candidate_subdirs: list[tuple[str, int]] = []
         with os.scandir(directory) as iterator:
             for entry in iterator:
                 rel_path = os.path.relpath(entry.path, root_abs_path)
@@ -309,20 +317,27 @@ def _directory_has_visible_entries(
                         next_depth = max_depth_remaining - 1 if max_depth_remaining > 0 else -1
                         if next_depth == 0:
                             continue
-                        if _directory_has_visible_entries(
-                            entry.path,
-                            root_abs_path,
-                            ignore_spec,
-                            cache,
-                            next_depth,
-                        ):
-                            cache[directory] = True
-                            return True
+                        # Defer recursion until after scandir is closed.
+                        candidate_subdirs.append((entry.path, next_depth))
                         continue
                 else:
                     if ignore_spec.match_file(rel_posix):
                         continue
 
+                # Found a visible entry in this directory.
+                cache[directory] = True
+                return True
+
+        # No immediate visible entries; now recurse into any ignored subdirectories
+        # that might contain visible entries, with scandir already closed.
+        for subdir_path, next_depth in candidate_subdirs:
+            if _directory_has_visible_entries(
+                subdir_path,
+                root_abs_path,
+                ignore_spec,
+                cache,
+                next_depth,
+            ):
                 cache[directory] = True
                 return True
     except FileNotFoundError:
