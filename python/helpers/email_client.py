@@ -12,6 +12,10 @@ from typing import Any, Dict, List, Optional, Tuple
 import html2text
 from bs4 import BeautifulSoup
 from imapclient import IMAPClient
+try:  # type: ignore
+    from imaplib import IMAP4_stream, IMAP4_SSL as IMAP4_TLS, IMAP4
+except Exception:  # pragma: no cover
+    IMAP4_stream = IMAP4_TLS = IMAP4 = None  # type: ignore[misc,assignment]
 
 from python.helpers import files
 from python.helpers.errors import RepairableException, format_error
@@ -94,7 +98,12 @@ class EmailClient:
             client = IMAPClient(self.server, port=self.port, ssl=self.ssl, timeout=self.timeout)
             # Increase line length limit to handle large emails (default is 10000)
             # This fixes "line too long" errors for emails with large headers or embedded content
-            client._imap._maxline = 100000
+            try:
+                if hasattr(client, "_imap") and hasattr(client._imap, "_maxline"):
+                    client._imap._maxline = 100000  # type: ignore[attr-defined]
+            except Exception:
+                # If the underlying imap object doesn't expose _maxline, skip silently
+                pass
             client.login(self.username, self.password)
             return client
 
@@ -173,7 +182,8 @@ class EmailClient:
         filter: Dict[str, Any],
     ) -> List[Message]:
         """Fetch messages from IMAP server."""
-        if not self.client:
+        client = self.client
+        if not client:
             raise RepairableException("IMAP client not connected. Call connect() first.")
 
         loop = asyncio.get_event_loop()
@@ -181,10 +191,10 @@ class EmailClient:
 
         def _sync_fetch():
             # Select inbox
-            self.client.select_folder("INBOX")
+            client.select_folder("INBOX")
 
             # Build search criteria
-            search_criteria = []
+            search_criteria: List[Any] = []
             if filter.get("unread", True):
                 search_criteria.append("UNSEEN")
 
@@ -196,7 +206,7 @@ class EmailClient:
             if not search_criteria:
                 search_criteria = ["ALL"]
 
-            message_ids = self.client.search(search_criteria)
+            message_ids = client.search(search_criteria)  # type: ignore[arg-type]
             return message_ids
 
         message_ids = await loop.run_in_executor(None, _sync_fetch)
@@ -231,7 +241,7 @@ class EmailClient:
         def _sync_fetch():
             try:
                 # Try standard RFC822 fetch first
-                return self.client.fetch([msg_id], ["RFC822"])[msg_id]
+                return client.fetch([msg_id], ["RFC822"])[msg_id]  # type: ignore[arg-type]
             except Exception as e:
                 error_msg = str(e).lower()
                 # If "line too long" error, try fetching in parts
@@ -239,7 +249,7 @@ class EmailClient:
                     PrintStyle.warning(f"Message {msg_id} too large for standard fetch, trying alternative method")
                     # Fetch headers and body separately to avoid line length issues
                     try:
-                        envelope = self.client.fetch([msg_id], ["BODY.PEEK[]"])[msg_id]
+                        envelope = client.fetch([msg_id], ["BODY.PEEK[]"])[msg_id]  # type: ignore[arg-type]
                         return envelope
                     except Exception as e2:
                         PrintStyle.error(f"Alternative fetch also failed for message {msg_id}: {format_error(e2)}")

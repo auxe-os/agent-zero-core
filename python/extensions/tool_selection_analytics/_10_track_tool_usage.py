@@ -1,27 +1,37 @@
 import asyncio
 import json
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
-from collections import defaultdict
+from typing import Any, Dict, TypedDict, Optional
 
 from python.helpers.extension import Extension
 from python.helpers.print_style import PrintStyle
 from agent import LoopData
 
 
+class ToolUsageEntry(TypedDict):
+    count: int
+    success_count: int
+    last_used: datetime | None
+    average_response_time: float
+    contexts_used: list[str]
+
+
 class TrackToolUsage(Extension):
     """Tracks tool usage patterns to improve selection accuracy over time"""
     
     def __init__(self):
-        self.usage_data = defaultdict(lambda: {
-            'count': 0,
-            'success_count': 0,
-            'last_used': None,
-            'average_response_time': 0.0,
-            'contexts_used': []
-        })
+        self.usage_data: dict[str, ToolUsageEntry] = {}
         self.session_start = datetime.now()
         self.current_session_tools = []
+
+    def _default_usage_entry(self) -> ToolUsageEntry:
+        return {
+            "count": 0,
+            "success_count": 0,
+            "last_used": None,
+            "average_response_time": 0.0,
+            "contexts_used": [],
+        }
     
     async def execute(self, loop_data: LoopData = LoopData(), **kwargs):
         """Track tool usage and update analytics"""
@@ -55,7 +65,7 @@ class TrackToolUsage(Extension):
         if not tool_name:
             return
             
-        usage = self.usage_data[tool_name]
+        usage = self.usage_data.setdefault(tool_name, self._default_usage_entry())
         usage['count'] += 1
         usage['last_used'] = datetime.now()
         
@@ -65,13 +75,16 @@ class TrackToolUsage(Extension):
         
         # Track response time if available
         if 'response_time' in entry:
-            current_avg = usage['average_response_time']
             new_time = entry['response_time']
-            usage['average_response_time'] = (current_avg + new_time) / 2
+            if isinstance(new_time, (int, float)):
+                current_avg = usage['average_response_time']
+                usage['average_response_time'] = (current_avg + float(new_time)) / 2
         
         # Track context (task type)
         if 'context' in entry:
-            usage['contexts_used'].append(entry['context'])
+            context_val = entry['context']
+            if isinstance(context_val, str):
+                usage['contexts_used'].append(context_val)
     
     def _should_update_weights(self) -> bool:
         """Check if it's time to update selection weights"""
@@ -107,7 +120,7 @@ class TrackToolUsage(Extension):
         except Exception as e:
             PrintStyle().print(f"Error updating tool weights: {e}")
     
-    def _calculate_recency_bonus(self, last_used: datetime) -> float:
+    def _calculate_recency_bonus(self, last_used: Optional[datetime]) -> float:
         """Calculate recency bonus for recently used tools"""
         if not last_used:
             return 0.0

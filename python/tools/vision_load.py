@@ -12,13 +12,10 @@ TOKENS_ESTIMATE = 1500
 
 
 class VisionLoad(Tool):
-    async def execute(self, paths: list[str] | None = None, **kwargs) -> Response:
+    async def execute(self, paths: list[str] = [], **kwargs) -> Response:
 
         self.images_dict = {}
         template: list[dict[str, str]] = []  # type: ignore
-
-        # Normalize paths to avoid mutable default issues
-        paths = paths or []
 
         for path in paths:
             if not await runtime.call_development_function(files.exists, str(path)):
@@ -50,64 +47,15 @@ class VisionLoad(Tool):
                     except Exception as e:
                         self.images_dict[path] = None
                         PrintStyle().error(f"Error processing image {path}: {e}")
-                        if hasattr(self.agent, "context") and hasattr(self.agent.context, "log"):
-                            try:
-                                self.agent.context.log.log("warning", f"Error processing image {path}: {e}")
-                            except Exception:
-                                # Fallback to simple print if structured logging fails
-                                PrintStyle().print(f"Warning: error logged for image {path}: {e}")
+                        self.agent.context.log.log("warning", f"Error processing image {path}: {e}")
 
-        # Provide a more meaningful message based on how many images were processed/queued
-        if not self.images_dict:
-            message = "No images found at provided paths"
-        else:
-            message = f"{len(self.images_dict)} image(s) queued for vision analysis"
-
-        return Response(message=message, break_loop=False)
-
-    def _model_supports_image_url(self) -> bool:
-        """Return True only for models that can handle OpenAI-style image_url content.
-
-        Deepseek currently does not accept image_url variants in messages, so we
-        explicitly disable image payloads for it and fall back to text-only.
-        """
-        try:
-            from python.helpers import settings  # type: ignore
-
-            current = getattr(settings, "current_settings", {})  # type: ignore[assignment]
-            provider = str(current.get("chat_model_provider", ""))
-        except Exception:
-            # If settings cannot be read for any reason, be conservative and
-            # avoid sending image_url payloads.
-            return False
-
-        # Deepseek models use a JSON schema that rejects image_url variants.
-        if provider == "deepseek":
-            return False
-
-        # For now, assume non-Deepseek chat providers configured as vision-capable
-        # can handle image_url payloads.
-        return True
+        return Response(message="dummy", break_loop=False)
 
     async def after_execution(self, response: Response, **kwargs):
 
         # build image data messages for LLMs, or error message
-        if not self.images_dict:
-            self.agent.hist_add_tool_result(self.name, "No images processed")
-
-            # print and log short version
-            message = "No images processed"
-            PrintStyle(
-                font_color="#1B4F72", background_color="white", padding=True, bold=True
-            ).print(f"{self.agent.agent_name}: Response from tool '{self.name}'")
-            PrintStyle(font_color="#85C1E9").print(message)
-            self.log.update(result=message)
-            return
-
-        if self._model_supports_image_url():
-            # Original behavior: send image_url payloads so vision-capable models
-            # can see images directly.
-            content = []  # type: ignore[var-annotated]
+        content = []
+        if self.images_dict:
             for path, image in self.images_dict.items():
                 if image:
                     content.append(
@@ -123,38 +71,20 @@ class VisionLoad(Tool):
                             "text": "Error processing image " + path,
                         }
                     )
-
             # append as raw message content for LLMs with vision tokens estimate
-            msg = history.RawMessage(  # type: ignore[arg-type]
-                raw_content=content, preview="<Base64 encoded image data>"
-            )
+            msg = history.RawMessage(raw_content=content, preview="<Base64 encoded image data>")
             self.agent.hist_add_message(
                 False, content=msg, tokens=TOKENS_ESTIMATE * len(content)
             )
         else:
-            # Fallback: plain-text summary for models that don't support image_url,
-            # such as Deepseek.
-            summary_lines: list[str] = []
-            for path, image in self.images_dict.items():
-                if image:
-                    summary_lines.append(f"[vision] Loaded image for analysis: {path}")
-                else:
-                    summary_lines.append(f"[vision] Error processing image {path}")
-
-            # Append plain-text summary for all models (avoids image_url payloads that
-            # Deepseek and some other providers don't support)
-            summary_text = "\n".join(summary_lines)
-            self.agent.hist_add_message(
-                False,
-                content=(
-                    "Vision tool summary (no direct image payloads sent to model):\n"
-                    f"{summary_text}"
-                ),
-                tokens=TOKENS_ESTIMATE * len(self.images_dict),
-            )
+            self.agent.hist_add_tool_result(self.name, "No images processed")
 
         # print and log short version
-        message = f"{len(self.images_dict)} images processed"
+        message = (
+            "No images processed"
+            if not self.images_dict
+            else f"{len(self.images_dict)} images processed"
+        )
         PrintStyle(
             font_color="#1B4F72", background_color="white", padding=True, bold=True
         ).print(f"{self.agent.agent_name}: Response from tool '{self.name}'")

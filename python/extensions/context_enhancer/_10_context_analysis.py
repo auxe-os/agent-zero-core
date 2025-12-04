@@ -1,6 +1,6 @@
 import re
 from typing import Dict, Any, List, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from collections import deque
 
 from python.helpers.extension import Extension
@@ -13,12 +13,12 @@ class ContextState:
     """Tracks the evolving context of the conversation"""
     current_task: str = ""
     task_type: str = "general"
-    keywords: List[str] = None
-    entities: List[str] = None
+    keywords: List[str] = field(default_factory=list)
+    entities: List[str] = field(default_factory=list)
     intent: str = ""
     conversation_stage: str = "beginning"
-    previous_tools: List[str] = None
-    success_indicators: List[str] = None
+    previous_tools: List[str] = field(default_factory=list)
+    success_indicators: List[str] = field(default_factory=list)
     
     def __post_init__(self):
         if self.keywords is None:
