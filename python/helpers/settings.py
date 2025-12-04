@@ -96,6 +96,7 @@ class Settings(TypedDict):
     stt_waiting_timeout: int
 
     tts_kokoro: bool
+    tts_kokoro_voice: str
 
     mcp_servers: str
     mcp_client_init_timeout: int
@@ -1049,6 +1050,30 @@ def convert_out(settings: Settings) -> SettingsOutput:
         }
     )
 
+    tts_fields.append(
+        {
+            "id": "tts_kokoro_voice",
+            "title": "Kokoro TTS Voice",
+            "description": "Select the voice for Kokoro TTS.",
+            "type": "select",
+            "value": settings.get("tts_kokoro_voice", "af_bella"),
+            "options": [
+                {"value": "af_bella", "label": "American Female - Bella"},
+                {"value": "af_sarah", "label": "American Female - Sarah"},
+                {"value": "af_nicole", "label": "American Female - Nicole"},
+                {"value": "af_sky", "label": "American Female - Sky"},
+                {"value": "am_adam", "label": "American Male - Adam"},
+                {"value": "am_michael", "label": "American Male - Michael"},
+                {"value": "am_puck", "label": "American Male - Puck"},
+                {"value": "am_onyx", "label": "American Male - Onyx"},
+                {"value": "bf_emma", "label": "British Female - Emma"},
+                {"value": "bf_isabella", "label": "British Female - Isabella"},
+                {"value": "bm_george", "label": "British Male - George"},
+                {"value": "bm_lewis", "label": "British Male - Lewis"},
+            ],
+        }
+    )
+
     speech_section: SettingsSection = {
         "id": "speech",
         "title": "Speech",
@@ -1523,6 +1548,7 @@ def get_default_settings() -> Settings:
         stt_silence_duration=1000,
         stt_waiting_timeout=2000,
         tts_kokoro=True,
+        tts_kokoro_voice="af_bella",
         mcp_servers='{\n    "mcpServers": {}\n}',
         mcp_client_init_timeout=10,
         mcp_client_tool_timeout=120,

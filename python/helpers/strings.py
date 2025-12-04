@@ -1,7 +1,6 @@
 import re
 import sys
 import time
-from python.helpers import files
 
 def sanitize_string(s: str, encoding: str = "utf-8") -> str:
     # Replace surrogates and invalid unicode with replacement character
@@ -167,8 +166,20 @@ def replace_file_includes(text: str, placeholder_pattern: str = r"§§include\((
     def _repl(match):
         path = match.group(1)
         try:
+            # Import here to avoid circular import
+            from python.helpers import files
             # read file content
             path = files.fix_dev_path(path)
+            # Check if it's a binary file (video, image, etc.)
+            ext = "." + path.split(".")[-1].lower() if "." in path else ""
+            binary_extensions = {
+                ".mp4", ".avi", ".mov", ".mkv", ".webm", ".m4v", ".wmv", ".flv",  # videos
+                ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff",  # images
+                ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".tar", ".gz"  # other binaries
+            }
+            if ext in binary_extensions:
+                # For binary files, return the original path (don't include content)
+                return match.group(0).replace("§§include(", "").rstrip(")")
             return files.read_file(path)
         except Exception:
             # if file not readable keep original placeholder

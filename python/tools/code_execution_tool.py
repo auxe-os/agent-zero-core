@@ -1,5 +1,6 @@
 import asyncio
 from dataclasses import dataclass
+import os
 import shlex
 import time
 from python.helpers.tool import Tool, Response
@@ -146,10 +147,10 @@ class CodeExecution(Tool):
                     self.agent.config.code_exec_ssh_port,
                     self.agent.config.code_exec_ssh_user,
                     pswd,
-                    cwd=self.get_cwd(),
+                    cwd=self.get_cwd(for_ssh=True),
                 )
             else:
-                shell = LocalInteractiveSession(cwd=self.get_cwd())
+                shell = LocalInteractiveSession(cwd=self.get_cwd(for_ssh=False))
 
             shells[session] = ShellWrap(id=session, session=shell, running=False)
             await shell.connect()
@@ -212,9 +213,9 @@ class CodeExecution(Tool):
                 return await self.get_terminal_output(session=session, prefix=prefix, timeouts=(timeouts or CODE_EXEC_TIMEOUTS))
 
             except Exception as e:
-                if i == 1:
+                if i == 0:
                     # try again on lost connection
-                    PrintStyle.error(str(e))
+                    PrintStyle.error(f"Code execution error, retrying: {e}")
                     await self.prepare_state(reset=True, session=session)
                     continue
                 else:
@@ -471,13 +472,26 @@ class CodeExecution(Tool):
         output = truncate_text_agent(agent=self.agent, output=output, threshold=1000000) # ~1MB, larger outputs should be dumped to file, not read from terminal
         return output
 
-    def get_cwd(self):
+    def get_cwd(self, for_ssh: bool = True):
+        """Get current working directory for shell sessions.
+        
+        Args:
+            for_ssh: If True, return /a0/ normalized path (for Docker).
+                     If False, return actual filesystem path (for local).
+        """
         project_name = projects.get_context_project_name(self.agent.context)
         if not project_name:
             return None
         project_path = projects.get_project_folder(project_name)
-        normalized = files.normalize_a0_path(project_path)
-        return normalized
+        
+        # For SSH (Docker), use /a0/ paths. For local, use real paths.
+        if for_ssh:
+            return files.normalize_a0_path(project_path)
+        else:
+            # Ensure the local directory exists
+            if not os.path.exists(project_path):
+                os.makedirs(project_path, exist_ok=True)
+            return project_path
         
 
         

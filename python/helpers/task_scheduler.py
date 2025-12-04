@@ -463,6 +463,7 @@ class SchedulerTaskList(BaseModel):
     tasks: list[Annotated[Union[ScheduledTask, AdHocTask, PlannedTask], Field(discriminator="type")]] = Field(default_factory=list)
     # Singleton instance
     __instance: ClassVar[Optional["SchedulerTaskList"]] = PrivateAttr(default=None)
+    _last_mtime: float = PrivateAttr(default=0.0)
 
     # lock: threading.Lock = Field(exclude=True, default=threading.Lock())
 
@@ -475,6 +476,7 @@ class SchedulerTaskList(BaseModel):
                 cls.__instance = asyncio.run(cls(tasks=[]).save())
             else:
                 cls.__instance = cls.model_validate_json(read_file(path))
+                cls.__instance._last_mtime = os.path.getmtime(path)
         else:
             asyncio.run(cls.__instance.reload())
         return cls.__instance
@@ -487,9 +489,16 @@ class SchedulerTaskList(BaseModel):
         path = get_abs_path(SCHEDULER_FOLDER, "tasks.json")
         if exists(path):
             with self._lock:
-                data = self.__class__.model_validate_json(read_file(path))
-                self.tasks.clear()
-                self.tasks.extend(data.tasks)
+                mtime = os.path.getmtime(path)
+                # Only reload if file has been modified
+                if mtime > self._last_mtime:
+                    try:
+                        data = self.__class__.model_validate_json(read_file(path))
+                        self.tasks.clear()
+                        self.tasks.extend(data.tasks)
+                        self._last_mtime = mtime
+                    except Exception as e:
+                        PrintStyle(italic=True, font_color="red").print(f"Error reloading tasks: {e}")
         return self
 
     async def add_task(self, task: Union[ScheduledTask, AdHocTask, PlannedTask]) -> "SchedulerTaskList":

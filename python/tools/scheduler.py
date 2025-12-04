@@ -101,6 +101,16 @@ class SchedulerTool(Tool):
         if not task:
             return Response(message=f"Task not found: {task_uuid}", break_loop=False)
         await TaskScheduler.get().run_task_by_uuid(task_uuid, task_context)
+        
+        # Wait for task to transition to RUNNING state (avoid race condition with wait_for_task)
+        for _ in range(20): # Wait up to 2 seconds
+            await asyncio.sleep(0.1)
+            # We need to reload to see the state change
+            await TaskScheduler.get().reload()
+            task = TaskScheduler.get().get_task_by_uuid(task_uuid)
+            if task and task.state == TaskState.RUNNING:
+                break
+
         if task.context_id == self.agent.context.id:
             break_loop = True  # break loop if task is running in the same context, otherwise it would start two conversations in one window
         else:

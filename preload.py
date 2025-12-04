@@ -41,7 +41,7 @@ async def preload():
         tasks = [
             preload_embedding(),
             # preload_whisper(),
-            # preload_kokoro()
+            # preload_kokoro()  # Disabled: lazy-load on first use for faster startup
         ]
 
         await asyncio.gather(*tasks, return_exceptions=True)

@@ -19,3 +19,28 @@ only bitmaps supported convert first if needed
     }
 }
 ```
+
+### video_load:
+extract frames from video files for visual analysis
+supports mp4, avi, mov, mkv, webm, m4v, wmv, flv
+extracts key frames automatically (no ffmpeg needed)
+args:
+- paths: list of video file paths
+- max_frames: maximum frames to extract (default 10)
+- strategy: "uniform" (evenly spaced) or "first" (first N frames)
+
+**Example usage**:
+```json
+{
+    "thoughts": [
+        "I need to analyze the video content...",
+    ],
+    "headline": "Extracting frames from video for analysis",
+    "tool_name": "video_load",
+    "tool_args": {
+        "paths": ["/path/to/video.mp4"],
+        "max_frames": 8,
+        "strategy": "uniform"
+    }
+}
+```
