@@ -49,7 +49,62 @@ def get_mcp_tools_prompt(agent: Agent):
         agent.context.log.set_progress(
             "Collecting MCP tools"
         )  # MCP might be initializing, better inform via progress bar
-        tools = MCPConfig.get_instance().get_tools_prompt()
+        
+        # Check if intelligent selection is enabled
+        try:
+            from python.helpers.mcp_config import is_intelligent_selection_enabled, get_max_tools_in_prompt, should_fallback_to_static, is_debug_mode
+            
+            if is_intelligent_selection_enabled():
+                # Get the last user message for context
+                user_message = ""
+                if hasattr(agent, 'last_user_message') and agent.last_user_message:
+                    if hasattr(agent.last_user_message, 'content'):
+                        content = agent.last_user_message.content
+                        if isinstance(content, str):
+                            user_message = content
+                        elif isinstance(content, dict) and 'message' in content:
+                            user_message = str(content['message'])
+                
+                # Import the intelligent tool selector
+                from python.helpers.mcp_tool_selector import get_intelligent_mcp_prompt
+                
+                # Generate intelligent prompt
+                max_tools = get_max_tools_in_prompt()
+                tools = get_intelligent_mcp_prompt(user_message, max_tools=max_tools)
+                
+                # Debug logging
+                if is_debug_mode():
+                    from python.helpers.print_style import PrintStyle
+                    PrintStyle(background_color="blue", font_color="white", padding=True).print(
+                        f"Intelligent MCP tool selection: {len(tools.split('###'))-2 if '###' in tools else 0} tools selected for context: {user_message[:100]}..."
+                    )
+                
+                # If intelligent selection failed and fallback is enabled
+                if not tools or "No relevant MCP tools" in tools:
+                    if should_fallback_to_static():
+                        tools = MCPConfig.get_instance().get_tools_prompt()
+                        if is_debug_mode():
+                            from python.helpers.print_style import PrintStyle
+                            PrintStyle(background_color="yellow", font_color="black", padding=True).print(
+                                "Falling back to static MCP tools prompt"
+                            )
+                    else:
+                        tools = "## MCP tool selection disabled - no relevant tools found\n"
+            else:
+                # Intelligent selection disabled, use static prompt
+                tools = MCPConfig.get_instance().get_tools_prompt()
+                if is_debug_mode():
+                    from python.helpers.print_style import PrintStyle
+                    PrintStyle(background_color="grey", font_color="white", padding=True).print(
+                        "Using static MCP tools prompt (intelligent selection disabled)"
+                    )
+                
+        except Exception as e:
+            # Fallback to static prompt on any error
+            from python.helpers.print_style import PrintStyle
+            PrintStyle().print(f"Error with intelligent MCP tool selection: {e}")
+            tools = MCPConfig.get_instance().get_tools_prompt()
+            
         agent.context.log.set_progress(pre_progress)  # return original progress
         return tools
     return ""

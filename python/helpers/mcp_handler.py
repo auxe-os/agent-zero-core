@@ -748,6 +748,44 @@ class MCPConfig(BaseModel):
                     )
 
         return prompt
+    
+    def get_tools_with_capabilities(self) -> List[Dict[str, Any]]:
+        """Get tools with enhanced capability information"""
+        tools_with_capabilities = []
+        
+        with self.__lock:
+            for server in self.servers:
+                try:
+                    server_tools = server.get_tools()
+                    for tool in server_tools:
+                        tool_copy = tool.copy()
+                        tool_copy["server"] = server.name
+                        
+                        # Add capability analysis if available
+                        try:
+                            from python.helpers.mcp_tool_selector import ToolCapabilityAnalyzer
+                            analyzer = ToolCapabilityAnalyzer()
+                            capability = analyzer.analyze_tool(tool, server.name)
+                            tool_copy["capabilities"] = {
+                                "categories": capability.categories,
+                                "keywords": capability.keywords,
+                                "input_types": capability.input_types,
+                                "output_types": capability.output_types,
+                                "use_cases": capability.use_cases,
+                                "confidence_score": capability.confidence_score
+                            }
+                        except ImportError:
+                            # Tool selector not available, skip capability analysis
+                            pass
+                        
+                        tools_with_capabilities.append(tool_copy)
+                        
+                except Exception as e:
+                    PrintStyle(
+                        background_color="yellow", font_color="black", padding=True
+                    ).print(f"Error getting tools from server {server.name}: {e}")
+        
+        return tools_with_capabilities
 
     def has_tool(self, tool_name: str) -> bool:
         """Check if a tool is available"""
