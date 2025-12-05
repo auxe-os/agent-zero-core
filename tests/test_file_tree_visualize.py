@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 import os
-from collections.abc import Iterable
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -109,7 +109,7 @@ def print_nested(items: List[Dict[str, Any]], root_label: str) -> None:
 
 
 @contextmanager
-def scenario_directory(name: str) -> Iterable[str]:
+def scenario_directory(name: str) -> Iterator[str]:
     rel_path = os.path.join(BASE_TEMP_ROOT, name)
     delete_dir(rel_path)
     create_dir(rel_path)

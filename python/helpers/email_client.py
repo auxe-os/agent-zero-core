@@ -238,6 +238,11 @@ class EmailClient:
         """Fetch and parse a single IMAP message with retry logic for large messages."""
         loop = asyncio.get_event_loop()
 
+        # Ensure IMAP client is available in this scope
+        client = self.client
+        if not client:
+            raise RepairableException("IMAP client not connected. Call connect() first.")
+
         def _sync_fetch():
             try:
                 # Try standard RFC822 fetch first
@@ -260,12 +265,18 @@ class EmailClient:
             raw_msg = await loop.run_in_executor(None, _sync_fetch)
 
             # Extract email data from response
+            email_data = None
             if b"RFC822" in raw_msg:
                 email_data = raw_msg[b"RFC822"]
             elif b"BODY[]" in raw_msg:
                 email_data = raw_msg[b"BODY[]"]
             else:
                 PrintStyle.error(f"Unexpected response format for message {msg_id}")
+                return None
+
+            # Be defensive about the payload type for static checkers and runtime safety
+            if not isinstance(email_data, (bytes, bytearray)):
+                PrintStyle.error(f"Unexpected payload type for message {msg_id}: {type(email_data)!r}")
                 return None
 
             email_msg = email.message_from_bytes(email_data)

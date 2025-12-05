@@ -713,6 +713,7 @@ class MCPConfig(BaseModel):
             pass
 
         prompt = '## "Remote (MCP Server) Agent Tools" available:\n\n'
+        prompt_dirs = [files.get_abs_path("prompts")]
         server_names = []
         for server in self.servers:
             if not server_name or server.name == server_name:
@@ -749,9 +750,9 @@ class MCPConfig(BaseModel):
                     prompt += (
                         f"#### Usage:\n"
                         f"{{\n"
-                        f'    "observations": {files.read_prompt_file("mcp.tool.observations.md")},\n'
-                        f'    "thoughts": {files.read_prompt_file("mcp.tool.thoughts.md")},\n'
-                        f'    "reflection": {files.read_prompt_file("mcp.tool.reflection.md")},\n'
+                        f'    "observations": {files.read_prompt_file("mcp.tool.observations.md", _directories=prompt_dirs)},\n'
+                        f'    "thoughts": {files.read_prompt_file("mcp.tool.thoughts.md", _directories=prompt_dirs)},\n'
+                        f'    "reflection": {files.read_prompt_file("mcp.tool.reflection.md", _directories=prompt_dirs)},\n'
                         f'    "tool_name": "{server_name}.{tool["name"]}",\n'
                         f'    "tool_args": !follow schema above\n'
                         f"}}\n"
