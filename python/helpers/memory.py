@@ -4,11 +4,15 @@ from langchain.storage import InMemoryByteStore, LocalFileStore
 from langchain.embeddings import CacheBackedEmbeddings
 from python.helpers import guids
 
+import sys
+import platform
+
 # from langchain_chroma import Chroma
 from langchain_community.vectorstores import FAISS
 
 # faiss needs to be patched for python 3.12 on arm #TODO remove once not needed
-from python.helpers import faiss_monkey_patch
+if platform.machine() in ("arm64", "aarch64") and sys.version_info >= (3, 12):
+    from python.helpers import faiss_monkey_patch
 import faiss
 
 
@@ -42,7 +46,11 @@ class MyFaiss(FAISS):
     # override aget_by_ids
     def get_by_ids(self, ids: Sequence[str], /) -> List[Document]:
         # return all self.docstore._dict[id] in ids
-        return [self.docstore._dict[id] for id in (ids if isinstance(ids, list) else [ids]) if id in self.docstore._dict]  # type: ignore
+        return [
+            self.docstore._dict[id]
+            for id in (ids if isinstance(ids, list) else [ids])
+            if id in self.docstore._dict
+        ]  # type: ignore
 
     async def aget_by_ids(self, ids: Sequence[str], /) -> List[Document]:
         return self.get_by_ids(ids)
@@ -52,7 +60,6 @@ class MyFaiss(FAISS):
 
 
 class Memory:
-
     class Area(Enum):
         MAIN = "main"
         FRAGMENTS = "fragments"
@@ -132,7 +139,6 @@ class Memory:
         memory_subdir: str,
         in_memory=False,
     ) -> tuple[MyFaiss, bool]:
-
         PrintStyle.standard("Initializing VectorDB...")
 
         if log_item:

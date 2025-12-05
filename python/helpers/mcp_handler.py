@@ -23,6 +23,7 @@ from datetime import timedelta
 import json
 from python.helpers import errors
 from python.helpers import settings
+from python.helpers import files
 
 import httpx
 
@@ -58,7 +59,13 @@ def _determine_server_type(config_dict: dict) -> str:
     # First check if type is explicitly specified
     if "type" in config_dict:
         server_type = config_dict["type"].lower()
-        if server_type in ["sse", "http-stream", "streaming-http", "streamable-http", "http-streaming"]:
+        if server_type in [
+            "sse",
+            "http-stream",
+            "streaming-http",
+            "streamable-http",
+            "http-streaming",
+        ]:
             return "MCPServerRemote"
         elif server_type == "stdio":
             return "MCPServerLocal"
@@ -77,7 +84,12 @@ def _determine_server_type(config_dict: dict) -> str:
 
 def _is_streaming_http_type(server_type: str) -> bool:
     """Check if the server type is a streaming HTTP variant."""
-    return server_type.lower() in ["http-stream", "streaming-http", "streamable-http", "http-streaming"]
+    return server_type.lower() in [
+        "http-stream",
+        "streaming-http",
+        "streamable-http",
+        "http-streaming",
+    ]
 
 
 def initialize_mcp(mcp_servers_config: str):
@@ -93,9 +105,9 @@ def initialize_mcp(mcp_servers_config: str):
                 temp=False,
             )
 
-            PrintStyle(
-                background_color="black", font_color="red", padding=True
-            ).print(f"Failed to update MCP settings: {e}")
+            PrintStyle(background_color="black", font_color="red", padding=True).print(
+                f"Failed to update MCP settings: {e}"
+            )
 
 
 class MCPTool(Tool):
@@ -423,9 +435,7 @@ class MCPConfig(BaseModel):
                             f"Error: Parsed MCP config (from json.loads) top-level structure is not a list. Config string was: '{config_str}'"
                         )
                         # servers_data remains empty
-                except (
-                    Exception
-                ) as e_json:  # Catch json.JSONDecodeError specifically if possible, or general Exception
+                except Exception as e_json:  # Catch json.JSONDecodeError specifically if possible, or general Exception
                     PrintStyle.error(
                         f"Error parsing MCP config string: {e_json}. Config string was: '{config_str}'"
                     )
@@ -739,20 +749,20 @@ class MCPConfig(BaseModel):
                     prompt += (
                         f"#### Usage:\n"
                         f"{{\n"
-                        # f'    "observations": ["..."],\n' # TODO: this should be a prompt file with placeholders
-                        f'    "thoughts": ["..."],\n'
-                        # f'    "reflection": ["..."],\n' # TODO: this should be a prompt file with placeholders
-                        f"    \"tool_name\": \"{server_name}.{tool['name']}\",\n"
+                        f'    "observations": {files.read_prompt_file("mcp.tool.observations.md")},\n'
+                        f'    "thoughts": {files.read_prompt_file("mcp.tool.thoughts.md")},\n'
+                        f'    "reflection": {files.read_prompt_file("mcp.tool.reflection.md")},\n'
+                        f'    "tool_name": "{server_name}.{tool["name"]}",\n'
                         f'    "tool_args": !follow schema above\n'
                         f"}}\n"
                     )
 
         return prompt
-    
+
     def get_tools_with_capabilities(self) -> List[Dict[str, Any]]:
         """Get tools with enhanced capability information"""
         tools_with_capabilities = []
-        
+
         with self.__lock:
             for server in self.servers:
                 try:
@@ -760,10 +770,13 @@ class MCPConfig(BaseModel):
                     for tool in server_tools:
                         tool_copy = tool.copy()
                         tool_copy["server"] = server.name
-                        
+
                         # Add capability analysis if available
                         try:
-                            from python.helpers.mcp_tool_selector import ToolCapabilityAnalyzer
+                            from python.helpers.mcp_tool_selector import (
+                                ToolCapabilityAnalyzer,
+                            )
+
                             analyzer = ToolCapabilityAnalyzer()
                             capability = analyzer.analyze_tool(tool, server.name)
                             tool_copy["capabilities"] = {
@@ -772,19 +785,19 @@ class MCPConfig(BaseModel):
                                 "input_types": capability.input_types,
                                 "output_types": capability.output_types,
                                 "use_cases": capability.use_cases,
-                                "confidence_score": capability.confidence_score
+                                "confidence_score": capability.confidence_score,
                             }
                         except ImportError:
                             # Tool selector not available, skip capability analysis
                             pass
-                        
+
                         tools_with_capabilities.append(tool_copy)
-                        
+
                 except Exception as e:
                     PrintStyle(
                         background_color="yellow", font_color="black", padding=True
                     ).print(f"Error getting tools from server {server.name}: {e}")
-        
+
         return tools_with_capabilities
 
     def has_tool(self, tool_name: str) -> bool:
@@ -801,7 +814,14 @@ class MCPConfig(BaseModel):
     def get_tool(self, agent: Any, tool_name: str) -> MCPTool | None:
         if not self.has_tool(tool_name):
             return None
-        return MCPTool(agent=agent, name=tool_name, method=None, args={}, message="", loop_data=None)
+        return MCPTool(
+            agent=agent,
+            name=tool_name,
+            method=None,
+            args={},
+            message="",
+            loop_data=None,
+        )
 
     async def call_tool(
         self, tool_name: str, input_data: Dict[str, Any]
@@ -861,7 +881,6 @@ class MCPClientBase(ABC):
         try:
             async with AsyncExitStack() as temp_stack:
                 try:
-
                     stdio, write = await self._create_stdio_transport(temp_stack)
                     # PrintStyle(font_color="cyan").print(f"MCPClientBase ({self.server.name} - {operation_name}): Transport created. Initializing session...")
                     session = await temp_stack.enter_async_context(
@@ -1061,6 +1080,7 @@ class MCPClientLocal(MCPClientBase):
         # do not read or close the file here, as stdio is async
         return stdio_transport
 
+
 class CustomHTTPClientFactory(ABC):
     def __init__(self, verify: bool = True):
         self.verify = verify
@@ -1092,11 +1112,13 @@ class CustomHTTPClientFactory(ABC):
 
         return httpx.AsyncClient(**kwargs, verify=self.verify)
 
-class MCPClientRemote(MCPClientBase):
 
+class MCPClientRemote(MCPClientBase):
     def __init__(self, server: Union[MCPServerLocal, MCPServerRemote]):
         super().__init__(server)
-        self.session_id: Optional[str] = None  # Track session ID for streaming HTTP clients
+        self.session_id: Optional[str] = (
+            None  # Track session ID for streaming HTTP clients
+        )
         self.session_id_callback: Optional[Callable[[], Optional[str]]] = None
 
     async def _create_stdio_transport(

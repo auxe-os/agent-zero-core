@@ -201,7 +201,6 @@ class Topic(Record):
         return compress
 
     async def compress_attention(self) -> bool:
-
         if len(self.messages) > 2:
             cnt_to_sum = math.ceil((len(self.messages) - 2) * TOPIC_COMPRESS_RATIO)
             msg_to_sum = self.messages[1 : cnt_to_sum + 1]
@@ -215,7 +214,6 @@ class Topic(Record):
         return False
 
     async def summarize_messages(self, messages: list[Message]):
-        # FIXME: vision bytes are sent to utility LLM, send summary instead
         msg_txt = [m.output_text() for m in messages]
         summary = await self.history.agent.call_utility_model(
             system=self.history.agent.read_prompt("fw.topic_summary.sys.md"),
@@ -459,24 +457,22 @@ def _get_ctx_size_for_history() -> int:
 
 
 def _stringify_output(output: OutputMessage, ai_label="ai", human_label="human"):
-    return f'{ai_label if output["ai"] else human_label}: {_stringify_content(output["content"])}'
+    return f"{ai_label if output['ai'] else human_label}: {_stringify_content(output['content'])}"
 
 
 def _stringify_content(content: MessageContent) -> str:
     # already a string
     if isinstance(content, str):
         return content
-    
-    # raw messages return preview or trimmed json
+
+    # raw messages return preview or placeholder (never raw content)
     if _is_raw_message(content):
-        preview: str = content.get("preview", "") # type: ignore
+        preview: str = content.get("preview", "")  # type: ignore
         if preview:
             return preview
-        text = _json_dumps(content)
-        if len(text) > RAW_MESSAGE_OUTPUT_TEXT_TRIM:
-            return text[:RAW_MESSAGE_OUTPUT_TEXT_TRIM] + "... TRIMMED"
-        return text
-    
+        # Don't dump raw_content which may contain base64 image data
+        return "<raw message content>"
+
     # regular messages of non-string are dumped as json
     return _json_dumps(content)
 
@@ -510,7 +506,9 @@ def group_messages_abab(messages: list[BaseMessage]) -> list[BaseMessage]:
     for msg in messages:
         if result and isinstance(result[-1], type(msg)):
             # create new instance of the same type with merged content
-            result[-1] = type(result[-1])(content=_merge_outputs(result[-1].content, msg.content))  # type: ignore
+            result[-1] = type(result[-1])(
+                content=_merge_outputs(result[-1].content, msg.content)
+            )  # type: ignore
         else:
             result.append(msg)
     return result
