@@ -23,7 +23,18 @@ async def run_loop():
             try:
                 await runtime.call_development_function(pause_loop)
             except Exception as e:
-                PrintStyle().error("Failed to pause job loop by development instance: " + errors.error_text(e))
+                msg = errors.error_text(e)
+                # Connection errors are expected when no separate development instance is running;
+                # log them at lower severity to avoid noisy error output during normal local runs.
+                if "Cannot connect to host" in msg or "Connect call failed" in msg:
+                    PrintStyle().debug(
+                        "No development instance available to pause job loop; continuing locally: "
+                        + msg
+                    )
+                else:
+                    PrintStyle().error(
+                        "Failed to pause job loop by development instance: " + msg
+                    )
         if not keep_running and (time.time() - pause_time) > (SLEEP_TIME * 2):
             resume_loop()
         if keep_running:

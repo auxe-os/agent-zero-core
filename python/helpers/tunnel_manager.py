@@ -1,4 +1,5 @@
-from flaredantic import FlareTunnel, FlareConfig, ServeoConfig, ServeoTunnel
+from flaredantic import FlareConfig, ServeoConfig, ServeoTunnel
+from python.helpers.cloudflare_tunnel import CloudflareTunnel
 import threading
 
 
@@ -32,8 +33,8 @@ class TunnelManager:
             def run_tunnel():
                 try:
                     if self.provider == "cloudflared":
-                        config = FlareConfig(port=port, verbose=True)
-                        self.tunnel = FlareTunnel(config)
+                        # Use internal CloudflareTunnel helper instead of flaredantic's cloudflared support
+                        self.tunnel = CloudflareTunnel(port)
                     else:  # Default to serveo
                         config = ServeoConfig(port=port) # type: ignore
                         self.tunnel = ServeoTunnel(config)
@@ -50,8 +51,20 @@ class TunnelManager:
 
             # Wait for tunnel to start (max 15 seconds instead of 5)
             for _ in range(150):  # Increased from 50 to 150 iterations
+                # If TunnelManager already has a URL, we're done
                 if self.tunnel_url:
                     break
+
+                # For providers like CloudflareTunnel, the URL is populated
+                # asynchronously on the tunnel instance itself; pick it up
+                # and mirror it into TunnelManager when available.
+                if self.tunnel is not None:
+                    tunnel_url = getattr(self.tunnel, "tunnel_url", None)
+                    if tunnel_url:
+                        self.tunnel_url = tunnel_url
+                        self.is_running = True
+                        break
+
                 import time
 
                 time.sleep(0.1)
