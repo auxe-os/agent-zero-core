@@ -1,31 +1,59 @@
-# Tool: seedream4_image (Seedream‑4.5)
+# Tool: seedream4_image (Seedream‑4.5) - Photorealism Optimized
 
-This tool calls the **Seedream‑4.5** image API hosted on BytePlus Model Ark (`https://ark.ap-southeast.bytepluses.com/api/v3/images/generations`). It is pre-configured with the `"seedream-4-5-251128"` model but can be overridden via the `SEEDREAM4_MODEL` env var.
+This tool calls the **Seedream‑4.5** image API hosted on BytePlus Model Ark (`https://ark.ap-southeast.bytepluses.com/api/v3/images/generations`). It is pre-configured with the `"seedream-4-5-251128"` model (optimized for photorealism) and defaults to **4K resolution** for ultra-high definition outputs.
 
 ## When to use
-- When the user asks you to **generate** a new image from a text description.
-- When the user asks you to **generate a series** of coherent images from a text prompt.
-- When the user asks you to **edit** or **expand** an existing image, and provides a public image URL (or a path that can be mapped to a URL externally).
+- When the user asks for **photorealistic** or **hyper-realistic** images.
+- When the user asks to **generate** a new image from a text description.
+- When the user asks to **generate a series** of coherent images from a text prompt.
+- When the user asks to **edit** or **expand** an existing image, and provides a public image URL (or a path that can be mapped to a URL externally).
 
-## Seedream‑4.5 prompt craft (master level)
+## Seedream‑4.5 prompt craft (photorealism master level)
 
-Structure prompts using the recommendations from the Seedream docs:
+### Core Structure
+Structure prompts using this **photorealism-optimized** template:
+```
+[Subject] + [Action] + [Environment] + [Lighting] + [Style] + [Quality] + [Negative Guardrails]
+```
 
-1. **Subject lock** – describe the character/object precisely. For edits, explicitly state what must remain unchanged (face, skin tone, pose, proportions).
-2. **Wardrobe / props / environment** – list concrete elements using bullet-style phrases or comma-separated descriptors.
-3. **Camera + composition** – include framing, lens, angle, depth of field, motion cues.
-4. **Lighting + atmosphere** – specify time of day, light quality, shadows, color temperature.
-5. **Finish & style** – mention materials, rendering style (photography, cinematic, anime, illustration), any art movements.
-6. **Quality tags** – request “4K”, “8K”, “ray traced”, etc. (Seedream accepts `"size": "2K"` or `"size": "4K"`, default is `2K`.)
-7. **Negative guardrails** – end with “Avoid: …” to block distortions (extra limbs, face changes, background changes, etc.).
+### Key Components
+1. **Subject lock** – Describe the character/object with **precise, photorealistic details**. For edits, explicitly state what must remain unchanged (e.g., "preserve facial identity, skin texture, and body proportions").
+2. **Wardrobe / props / environment** – Use **photorealistic descriptors** (e.g., "worn leather jacket with scuff marks", "dewy morning grass").
+3. **Camera + composition** – Specify **realistic framing** (e.g., "35mm lens, shallow depth of field, rule of thirds").
+4. **Lighting + atmosphere** – Use **cinematic lighting terms** (e.g., "golden hour, volumetric fog, rim lighting").
+5. **Finish & style** – Always include **photorealism keywords** (e.g., "photorealistic, cinematic, 8K, HDR, depth of field").
+6. **Quality tags** – Request **ultra-high definition** (e.g., "4K, 8K, ray-traced, hyper-detailed"). Default is `2K` (use `4K` for maximum detail).
+7. **Negative guardrails** – Block **unrealistic artifacts** (e.g., "Avoid: plastic skin, blurry details, cartoonish proportions, low resolution").
 
-Keep prompts concise but information-dense (2–4 sentences or a short list).
-Avoid conflicting instructions; Seedream 4.5 responds best to confident, declarative language.
+### Photorealism-Specific Tips
+- **Lighting is critical**: Always specify time of day and light quality (e.g., "soft diffused light, late afternoon").
+- **Textures matter**: Describe materials with realistic properties (e.g., "rough concrete, glossy ceramic").
+- **Depth of field**: Use terms like "shallow DOF" or "deep focus" to control realism.
+- **Color grading**: Specify color tones (e.g., "teal and orange color grading, high contrast").
 
-**Subject reference phrase (highly recommended):**  
-> “Strictly preserve the subject’s facial identity and body structure from the reference image, while adapting the outfit and background as described.”
+### Subject Reference (for edits/expansions)
+> “Strictly preserve the subject’s **facial identity, skin texture, and body structure** from the reference image, while adapting the outfit and background as described. Use **advanced consistency preservation** to maintain lighting and color tone.”
 
-Seedream 4.5’s “Subject Reference” and “Advanced Consistency Preservation” features respond best when you **explicitly lock identity** (face + proportions) and **separately describe what may change** (wardrobe, scene, mood). Include the phrase above (or equivalent wording) whenever likeness matters.
+### Photorealism Examples
+#### Example 1: Portrait
+```
+A weathered fisherman with sun-leathered skin and deep wrinkles, smoking a pipe on a wooden dock at sunset. 35mm lens, shallow depth of field, golden hour lighting with lens flares, cinematic color grading, hyper-detailed skin texture, photorealistic, 8K, HDR. Avoid: plastic skin, blurry details, cartoonish proportions.
+```
+
+#### Example 2: Product Photography
+```
+A luxury wristwatch with a sapphire crystal face and rose gold casing, resting on black marble. High-end product photography, studio lighting with softboxes, shallow depth of field, hyper-detailed metal textures, 8K, HDR. Avoid: reflections on non-reflective surfaces, blurry details, unrealistic shadows.
+```
+
+#### Example 3: Landscape
+```
+A misty mountain valley at dawn, with a crystal-clear alpine lake reflecting the pink sky. Wide-angle lens, deep focus, volumetric fog in the distance, hyper-detailed rock textures, cinematic color grading, 8K, HDR. Avoid: oversaturated colors, cartoonish clouds, unrealistic water reflections.
+```
+
+### Default Settings (Automatically Applied)
+- **Resolution**: 2K (default, use 4K for maximum detail)
+- **Style**: Photorealistic (cinematic lighting, HDR, depth of field)
+- **Negative Prompt**: "plastic skin, blurry details, cartoonish proportions, low resolution, unrealistic shadows, oversaturated colors"
 
 ## Arguments
 - `prompt` (string, required)

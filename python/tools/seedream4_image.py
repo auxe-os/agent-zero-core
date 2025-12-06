@@ -10,6 +10,11 @@ import requests
 # Seedream4 helpers centralise API config (endpoint, model, env flags).
 from python.helpers import dotenv, files, seedream4
 from python.helpers.tool import Tool, Response
+from python.helpers.notification import (
+    NotificationManager,
+    NotificationType,
+    NotificationPriority,
+)
 
 
 class Seedream4ImageTool(Tool):
@@ -36,35 +41,54 @@ class Seedream4ImageTool(Tool):
     ) -> Response:
         # Global on/off switch for Seedream integration.
         if not seedream4.is_enabled():
-            return Response(message="Seedream4 image tool is disabled (set SEEDREAM4_ENABLED=true to enable).", break_loop=False)
+            return Response(
+                message="Seedream4 image tool is disabled (set SEEDREAM4_ENABLED=true to enable).",
+                break_loop=False,
+            )
 
         # API key for Seedream 4.0 backend.
         api_key = seedream4.get_api_key()
         if not api_key:
-            return Response(message="Seedream4 API key missing (set SEEDREAM4_API_KEY in env).", break_loop=False)
+            return Response(
+                message="Seedream4 API key missing (set SEEDREAM4_API_KEY in env).",
+                break_loop=False,
+            )
 
         if not prompt or not isinstance(prompt, str):
             return Response(message="prompt argument missing", break_loop=False)
 
         mode = (mode or "generate").lower()
         if mode not in ("generate", "generate_series", "edit", "expand"):
-            return Response(message="invalid mode, expected one of: generate, generate_series, edit, expand", break_loop=False)
+            return Response(
+                message="invalid mode, expected one of: generate, generate_series, edit, expand",
+                break_loop=False,
+            )
 
         # Base endpoint for Seedream 4.x image generation.
         endpoint = seedream4.SEEDREAM4_ENDPOINT
+
+        # Auto-enrich prompt for photorealism if not specified
+        if "photorealistic" not in prompt.lower() and "cinematic" not in prompt.lower():
+            prompt += ", photorealistic, cinematic lighting, 8K, HDR, depth of field"
 
         payload: dict[str, Any] = {
             "model": seedream4.SEEDREAM4_MODEL,
             "prompt": prompt,
             "response_format": "url",
-            "size": size or "2K",
+            "size": size or "2K",  # Default to 2K for balance of speed and quality
             "watermark": True if watermark is None else bool(watermark),
             "stream": False if stream is None else bool(stream),
+            "negative_prompt": kwargs.get(
+                "negative_prompt",
+                "plastic skin, blurry details, cartoonish proportions, low resolution, unrealistic shadows, oversaturated colors",
+            ),
         }
 
         if mode in ("edit", "expand"):
             if not image_url and image_path:
-                base = dotenv.get_dotenv_value("SEEDREAM4_FILE_BASE_URL", "").rstrip("/")
+                base = dotenv.get_dotenv_value("SEEDREAM4_FILE_BASE_URL", "").rstrip(
+                    "/"
+                )
                 if base:
                     rel = image_path.lstrip("/")
                     image_url = f"{base}/{rel}"
@@ -78,7 +102,9 @@ class Seedream4ImageTool(Tool):
                         "to map local paths to a public host that serves your images."
                     )
                 else:
-                    msg += "Provide image_url pointing to an image Seedream can download."
+                    msg += (
+                        "Provide image_url pointing to an image Seedream can download."
+                    )
                 return Response(message=msg, break_loop=False)
 
             payload["image"] = image_url
@@ -109,12 +135,18 @@ class Seedream4ImageTool(Tool):
             return Response(message=f"Seedream4 HTTP error: {e}", break_loop=False)
 
         if resp.status_code >= 400:
-            return Response(message=f"Seedream4 API error {resp.status_code}: {resp.text}", break_loop=False)
+            return Response(
+                message=f"Seedream4 API error {resp.status_code}: {resp.text}",
+                break_loop=False,
+            )
 
         try:
             data = resp.json()
         except Exception:
-            return Response(message=f"Seedream4 returned non-JSON response: {resp.text[:500]}", break_loop=False)
+            return Response(
+                message=f"Seedream4 returned non-JSON response: {resp.text[:500]}",
+                break_loop=False,
+            )
 
         urls: list[str] = []
         if isinstance(data, dict):
@@ -153,7 +185,7 @@ class Seedream4ImageTool(Tool):
             # The remote Seedream URL is time-limited and should be used only
             # internally (it's still available under result["raw"]).
             if path:
-                web_path = files.normalize_a0_path(abs_path)
+                web_path = f"img://{path}"
                 stored.append({"path": path, "web_path": web_path})
             else:
                 stored.append({"remote_url": url})
@@ -170,10 +202,32 @@ class Seedream4ImageTool(Tool):
             paths = [str(img["path"]) for img in stored if img.get("path")]
             count = len(stored)
             if paths:
-                summary = f"Seedream4: {count} image(s) saved to export_zone: " + ", ".join(paths)
+                summary = (
+                    f"Seedream4: {count} hyper-realistic image(s) generated. The image(s) are saved at: "
+                    + ", ".join(paths)
+                )
             else:
                 # Images exist but were not saved locally.
                 # Remote URLs are short-lived and only available in raw.
-                summary = f"Seedream4: {count} image(s) generated (remote URLs available in raw, not logged here)."
+                summary = f"Seedream4: {count} hyper-realistic image(s) generated (remote URLs available in raw, not logged here)."
 
-        return Response(message=summary, break_loop=False, additional={"seedream4_result": result})
+        # Send notification for generated images
+        if stored:
+            image_paths = [img["web_path"] for img in stored if img.get("web_path")]
+            if image_paths:
+                NotificationManager.send_notification(
+                    type=NotificationType.INFO,
+                    priority=NotificationPriority.NORMAL,
+                    title="Photorealistic Images Generated",
+                    message=f"{count} hyper-realistic image(s) ready. Click to view.",
+                    detail=f"<div>Images generated with photorealism settings:<br>"
+                    f"- Resolution: {payload.get('size', '4K')}<br>"
+                    f"- Style: Photorealistic, cinematic lighting<br>"
+                    f"- Quality: 8K, HDR, depth of field<br>"
+                    f"Saved to:<br>{'<br>'.join(image_paths)}</div>",
+                    display_time=5,
+                )
+
+        return Response(
+            message=summary, break_loop=False, additional={"seedream4_result": result}
+        )

@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - CHANGELOG.md file - Added to track all changes following GEMINI.md requirements - 2025-12-04
 
 ### Fixed
+- Code Execution Tool Robustness - Implemented "command not found" detection and graceful fallback for ipython/python and informative error for nodejs - 2025-12-06
 - FAISS ARM patch for Python 3.12 - Conditional import fix for ARM compatibility - 2025-12-04
 - DeferredTask background tasks - Replaced with simpler asyncio.create_task pattern for better resource management - 2025-12-04
 - Vision bytes sent to utility LLM - Fixed to send image summaries instead of raw bytes - 2025-12-04

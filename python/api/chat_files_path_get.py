@@ -15,7 +15,7 @@ class GetChatFilesPath(ApiHandler):
         if project_name:
             folder = files.normalize_a0_path(projects.get_project_folder(project_name))
         else:
-            folder = "/root" # root in container
+            folder = "/export_zone"  # export_zone mount root in container
 
         return {
             "ok": True,

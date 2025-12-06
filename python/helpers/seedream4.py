@@ -41,3 +41,12 @@ def build_headers(api_key: str) -> Dict[str, str]:
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}",
     }
+
+
+def get_photorealism_defaults() -> Dict[str, Any]:
+    """Return default settings for photorealistic image generation."""
+    return {
+        "size": "4K",
+        "negative_prompt": "plastic skin, blurry details, cartoonish proportions, low resolution, unrealistic shadows, oversaturated colors",
+        "style_cues": "photorealistic, cinematic lighting, 8K, HDR, depth of field",
+    }
