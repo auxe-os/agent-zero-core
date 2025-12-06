@@ -83,7 +83,7 @@ The tool returns a JSON object with:
 - `prompt` – the original prompt.
 - `images` – a list of objects, each containing:
   - `path` – project-relative path where the image was saved (`export_zone/seedream4_…png`).
-  - `web_path` – web-safe path (e.g., `/a0/export_zone/seedream4_…png`) **for embedding in chat UIs**.
+  - `web_path` – web-safe path (e.g., `img://export_zone/seedream4_…png`) **for embedding in chat UIs**.
   - `remote_url` – only present if the image could not be saved locally (short-lived Seedream URL).
 - `raw` – raw response payload from the Seedream API for advanced use.
 
