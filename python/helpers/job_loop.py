@@ -31,6 +31,12 @@ async def run_loop():
                         "No development instance available to pause job loop; continuing locally: "
                         + msg
                     )
+                elif "Invalid RFC hash" in msg:
+                    # Auth mismatch with development instance; continue running jobs locally.
+                    PrintStyle().debug(
+                        "Development instance RFC auth failed when pausing job loop; continuing locally: "
+                        + msg
+                    )
                 else:
                     PrintStyle().error(
                         "Failed to pause job loop by development instance: " + msg
