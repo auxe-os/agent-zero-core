@@ -8,6 +8,12 @@ import socket
 import struct
 from functools import wraps
 import threading
+from typing import Optional
+
+try:
+    import resource  # POSIX-only, used to raise file descriptor limits
+except ImportError:  # pragma: no cover - on non-POSIX platforms
+    resource = None  # type: ignore[assignment]
 from flask import Flask, request, Response, session, redirect, url_for, render_template_string
 from werkzeug.wrappers.response import Response as BaseResponse
 import initialize
@@ -197,6 +203,22 @@ def run():
     from a2wsgi import ASGIMiddleware
 
     PrintStyle().print("Starting server...")
+
+    # Best-effort: raise file descriptor limit to reduce 'Too many open files' errors
+    # on macOS/Linux. This is safe on POSIX and skipped elsewhere.
+    if resource is not None:  # type: ignore[truthy-function]
+        try:
+            soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+            # Aim for a reasonably higher soft limit without exceeding the hard cap.
+            target_soft = min(max(soft, 4096), hard)
+            if target_soft > soft:
+                resource.setrlimit(resource.RLIMIT_NOFILE, (target_soft, hard))
+                PrintStyle().debug(
+                    f"Increased RLIMIT_NOFILE soft limit from {soft} to {target_soft} (hard={hard})."
+                )
+        except Exception as e:
+            # Do not fail startup if we cannot change limits; just log and continue.
+            PrintStyle().debug(f"Could not adjust RLIMIT_NOFILE: {e}")
 
     class NoRequestLoggingWSGIRequestHandler(WSGIRequestHandler):
         def log_request(self, code="-", size="-"):

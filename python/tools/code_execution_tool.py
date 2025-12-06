@@ -1,6 +1,5 @@
 import asyncio
 from dataclasses import dataclass
-import os
 import shlex
 import time
 from python.helpers.tool import Tool, Response
@@ -66,17 +65,32 @@ class CodeExecution(Tool):
         session = int(self.args.get("session", 0))
         self.allow_running = bool(self.args.get("allow_running", False))
 
-        if runtime == "python":
+        # Accept multiple possible keys for the code/command payload to avoid KeyError
+        # and be resilient to schema differences.
+        code_arg = (
+            self.args.get("code")
+            or self.args.get("command")
+            or self.args.get("script")
+            or kwargs.get("code")
+            or kwargs.get("command")
+            or kwargs.get("script")
+        )
+
+        if runtime in {"python", "nodejs", "terminal"} and not code_arg:
+            # Gracefully handle missing code instead of raising KeyError.
+            info = self.agent.read_prompt("fw.code.missing_arg.md", arg_name="code")
+            response = self.agent.read_prompt("fw.code.info.md", info=info)
+        elif runtime == "python":
             response = await self.execute_python_code(
-                code=self.args["code"], session=session
+                code=code_arg, session=session
             )
         elif runtime == "nodejs":
             response = await self.execute_nodejs_code(
-                code=self.args["code"], session=session
+                code=code_arg, session=session
             )
         elif runtime == "terminal":
             response = await self.execute_terminal_command(
-                command=self.args["code"], session=session
+                command=code_arg, session=session
             )
         elif runtime == "output":
             response = await self.get_terminal_output(
@@ -147,10 +161,10 @@ class CodeExecution(Tool):
                     self.agent.config.code_exec_ssh_port,
                     self.agent.config.code_exec_ssh_user,
                     pswd,
-                    cwd=self.get_cwd(for_ssh=True),
+                    cwd=self.get_cwd(),
                 )
             else:
-                shell = LocalInteractiveSession(cwd=self.get_cwd(for_ssh=False))
+                shell = LocalInteractiveSession(cwd=self.get_cwd())
 
             shells[session] = ShellWrap(id=session, session=shell, running=False)
             await shell.connect()
@@ -213,9 +227,9 @@ class CodeExecution(Tool):
                 return await self.get_terminal_output(session=session, prefix=prefix, timeouts=(timeouts or CODE_EXEC_TIMEOUTS))
 
             except Exception as e:
-                if i == 0:
+                if i == 1:
                     # try again on lost connection
-                    PrintStyle.error(f"Code execution error, retrying: {e}")
+                    PrintStyle.error(str(e))
                     await self.prepare_state(reset=True, session=session)
                     continue
                 else:
@@ -472,26 +486,13 @@ class CodeExecution(Tool):
         output = truncate_text_agent(agent=self.agent, output=output, threshold=1000000) # ~1MB, larger outputs should be dumped to file, not read from terminal
         return output
 
-    def get_cwd(self, for_ssh: bool = True):
-        """Get current working directory for shell sessions.
-        
-        Args:
-            for_ssh: If True, return /a0/ normalized path (for Docker).
-                     If False, return actual filesystem path (for local).
-        """
+    def get_cwd(self):
         project_name = projects.get_context_project_name(self.agent.context)
         if not project_name:
             return None
         project_path = projects.get_project_folder(project_name)
-        
-        # For SSH (Docker), use /a0/ paths. For local, use real paths.
-        if for_ssh:
-            return files.normalize_a0_path(project_path)
-        else:
-            # Ensure the local directory exists
-            if not os.path.exists(project_path):
-                os.makedirs(project_path, exist_ok=True)
-            return project_path
+        normalized = files.normalize_a0_path(project_path)
+        return normalized
         
 
         
