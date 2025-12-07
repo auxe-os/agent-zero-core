@@ -6,8 +6,25 @@ from python.helpers.wait import managed_wait
 from python.helpers.localization import Localization
 
 class WaitTool(Tool):
+    """
+    A tool that pauses the agent's execution for a specified duration or until
+    a specific timestamp.
+    """
 
     async def execute(self, **kwargs) -> Response:
+        """
+        Executes the wait tool.
+
+        The agent can wait for a duration specified in days, hours, minutes, and
+        seconds, or until a specific ISO 8601 timestamp.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments. Can include 'seconds',
+                      'minutes', 'hours', 'days', or 'until'.
+
+        Returns:
+            A Response object with a message indicating that the wait is complete.
+        """
         await self.agent.handle_intervention()
 
         seconds = self.args.get("seconds", 0)
@@ -75,6 +92,12 @@ class WaitTool(Tool):
         )
 
     def get_log_object(self):
+        """
+        Creates a log object for the wait tool.
+
+        Returns:
+            A log object of type 'progress' for tracking the wait.
+        """
         return self.agent.context.log.log(
             type="progress",
             heading=self.get_heading(),
@@ -83,6 +106,16 @@ class WaitTool(Tool):
         )
 
     def get_heading(self, text: str = "", done: bool = False):
+        """
+        Generates a heading for the log output.
+
+        Args:
+            text: Optional text to include in the heading.
+            done: If True, adds a 'done' icon to the heading.
+
+        Returns:
+            A formatted string for the log heading.
+        """
         done_icon = " icon://done_all" if done else ""
         if not text:
             text = f"Waiting..."

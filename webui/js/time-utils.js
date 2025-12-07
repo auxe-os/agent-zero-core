@@ -1,4 +1,9 @@
 /**
+ * @file This module provides a set of utility functions for handling and
+ * formatting dates and times. It focuses on converting between UTC and local
+ * time and providing user-friendly date/time strings.
+ */
+/**
  * Time utilities for handling UTC to local time conversion
  */
 

@@ -4,9 +4,17 @@ from python.helpers.fasta2a_client import connect_to_agent, is_client_available
 
 
 class A2AChatTool(Tool):
-    """Communicate with another FastA2A-compatible agent."""
+    """A tool for communicating with other FastA2A-compatible agents."""
 
     async def execute(self, **kwargs):
+        """Executes the tool.
+
+        Args:
+            **kwargs: The arguments to pass to the tool.
+
+        Returns:
+            A Response object.
+        """
         if not is_client_available():
             return Response(message="FastA2A client not available on this instance.", break_loop=False)
 

@@ -37,12 +37,18 @@ from python.helpers.errors import RepairableException
 
 
 class AgentContextType(Enum):
+    """Defines the types of agent contexts."""
     USER = "user"
     TASK = "task"
     BACKGROUND = "background"
 
 
 class AgentContext:
+    """Manages the state and lifecycle of an agent's execution environment.
+
+    This class encapsulates the configuration, logging, and state of an agent,
+    allowing for multiple agents to run concurrently with isolated contexts.
+    """
     _contexts: dict[str, "AgentContext"] = {}
     _counter: int = 0
     _notification_manager = None
@@ -63,6 +69,23 @@ class AgentContext:
         output_data: dict | None = None,
         set_current: bool = False,
     ):
+        """Initializes a new agent context.
+
+        Args:
+            config: The agent's configuration.
+            id: A unique identifier for the context. If None, one is generated.
+            name: A human-readable name for the context.
+            agent0: The root agent for this context.
+            log: A logging instance. If None, a new one is created.
+            paused: Whether the context is paused.
+            streaming_agent: The agent currently streaming output.
+            created_at: The timestamp when the context was created.
+            type: The type of the context.
+            last_message: The timestamp of the last message.
+            data: A dictionary for storing arbitrary data.
+            output_data: A dictionary for storing output data.
+            set_current: Whether to set this context as the current one.
+        """
         # initialize context
         self.id = id or AgentContext.generate_id()
         existing = self._contexts.get(self.id, None)
@@ -91,10 +114,26 @@ class AgentContext:
 
     @staticmethod
     def get(id: str):
+        """Gets a context by its ID.
+
+        Args:
+            id: The ID of the context to retrieve.
+
+        Returns:
+            The AgentContext object, or None if not found.
+        """
         return AgentContext._contexts.get(id, None)
 
     @staticmethod
     def use(id: str):
+        """Sets a context as the current one and returns it.
+
+        Args:
+            id: The ID of the context to use.
+
+        Returns:
+            The AgentContext object, or None if not found.
+        """
         context = AgentContext.get(id)
         if context:
             AgentContext.set_current(id)
@@ -104,6 +143,11 @@ class AgentContext:
 
     @staticmethod
     def current():
+        """Gets the current agent context.
+
+        Returns:
+            The current AgentContext object, or None if not set.
+        """
         ctxid = context_helper.get_context_data("agent_context_id", "")
         if not ctxid:
             return None
@@ -111,20 +155,40 @@ class AgentContext:
 
     @staticmethod
     def set_current(ctxid: str):
+        """Sets the current agent context ID.
+
+        Args:
+            ctxid: The ID of the context to set as current.
+        """
         context_helper.set_context_data("agent_context_id", ctxid)
 
     @staticmethod
     def first():
+        """Gets the first agent context.
+
+        Returns:
+            The first AgentContext object, or None if there are no contexts.
+        """
         if not AgentContext._contexts:
             return None
         return list(AgentContext._contexts.values())[0]
 
     @staticmethod
     def all():
+        """Gets all agent contexts.
+
+        Returns:
+            A list of all AgentContext objects.
+        """
         return list(AgentContext._contexts.values())
 
     @staticmethod
     def generate_id():
+        """Generates a unique short ID for a context.
+
+        Returns:
+            A unique 8-character string.
+        """
         def generate_short_id():
             return "".join(random.choices(string.ascii_letters + string.digits, k=8))
 
@@ -135,6 +199,11 @@ class AgentContext:
 
     @classmethod
     def get_notification_manager(cls):
+        """Gets the notification manager.
+
+        Returns:
+            The NotificationManager instance.
+        """
         if cls._notification_manager is None:
             from python.helpers.notification import NotificationManager  # type: ignore
 
@@ -143,28 +212,73 @@ class AgentContext:
 
     @staticmethod
     def remove(id: str):
+        """Removes a context and kills its associated task.
+
+        Args:
+            id: The ID of the context to remove.
+
+        Returns:
+            The removed AgentContext object, or None if not found.
+        """
         context = AgentContext._contexts.pop(id, None)
         if context and context.task:
             context.task.kill()
         return context
 
     def get_data(self, key: str, recursive: bool = True):
+        """Gets a value from the context's data dictionary.
+
+        Args:
+            key: The key to retrieve.
+            recursive: Whether to search recursively (not currently implemented).
+
+        Returns:
+            The value associated with the key, or None if not found.
+        """
         # recursive is not used now, prepared for context hierarchy
         return self.data.get(key, None)
 
     def set_data(self, key: str, value: Any, recursive: bool = True):
+        """Sets a value in the context's data dictionary.
+
+        Args:
+            key: The key to set.
+            value: The value to store.
+            recursive: Whether to set the value recursively (not currently implemented).
+        """
         # recursive is not used now, prepared for context hierarchy
         self.data[key] = value
 
     def get_output_data(self, key: str, recursive: bool = True):
+        """Gets a value from the context's output data dictionary.
+
+        Args:
+            key: The key to retrieve.
+            recursive: Whether to search recursively (not currently implemented).
+
+        Returns:
+            The value associated with the key, or None if not found.
+        """
         # recursive is not used now, prepared for context hierarchy
         return self.output_data.get(key, None)
 
     def set_output_data(self, key: str, value: Any, recursive: bool = True):
+        """Sets a value in the context's output data dictionary.
+
+        Args:
+            key: The key to set.
+            value: The value to store.
+            recursive: Whether to set the value recursively (not currently implemented).
+        """
         # recursive is not used now, prepared for context hierarchy
         self.output_data[key] = value
 
     def output(self):
+        """Generates a dictionary representation of the context's state.
+
+        Returns:
+            A dictionary containing key information about the context.
+        """
         return {
             "id": self.id,
             "name": self.name,
@@ -198,6 +312,20 @@ class AgentContext:
         id: str | None = None,  # Add id parameter
         **kwargs,
     ) -> list[Log.LogItem]:
+        """Logs a message to all contexts.
+
+        Args:
+            type: The type of log message.
+            heading: The heading of the log message.
+            content: The content of the log message.
+            kvps: Key-value pairs to include in the log.
+            temp: Whether the log is temporary.
+            update_progress: A progress update object.
+            id: The ID of the log item.
+
+        Returns:
+            A list of the created log items.
+        """
         items: list[Log.LogItem] = []
         for context in AgentContext.all():
             items.append(
@@ -208,10 +336,12 @@ class AgentContext:
         return items
 
     def kill_process(self):
+        """Kills the current task running in the context."""
         if self.task:
             self.task.kill()
 
     def reset(self):
+        """Resets the context to its initial state."""
         self.kill_process()
         self.log.reset()
         self.agent0 = Agent(0, self.config, self)
@@ -219,15 +349,34 @@ class AgentContext:
         self.paused = False
 
     def nudge(self):
+        """Resumes a paused monologue."""
         self.kill_process()
         self.paused = False
         self.task = self.run_task(self.get_agent().monologue)
         return self.task
 
     def get_agent(self):
+        """Gets the current agent for the context.
+
+        Returns:
+            The streaming agent if one is active, otherwise the root agent.
+        """
         return self.streaming_agent or self.agent0
 
     def communicate(self, msg: "UserMessage", broadcast_level: int = 1):
+        """Sends a message to the agent.
+
+        If a task is running, the message is treated as an intervention.
+        Otherwise, a new task is started to process the message.
+
+        Args:
+            msg: The user message to send.
+            broadcast_level: How many levels up the agent hierarchy to broadcast
+                             the intervention.
+
+        Returns:
+            The deferred task handling the communication.
+        """
         self.paused = False  # unpause if paused
 
         current_agent = self.get_agent()
@@ -249,6 +398,16 @@ class AgentContext:
     def run_task(
         self, func: Callable[..., Coroutine[Any, Any, Any]], *args: Any, **kwargs: Any
     ):
+        """Runs a function as a deferred task.
+
+        Args:
+            func: The coroutine function to run.
+            *args: Positional arguments for the function.
+            **kwargs: Keyword arguments for the function.
+
+        Returns:
+            The deferred task.
+        """
         if not self.task:
             self.task = DeferredTask(
                 thread_name=self.__class__.__name__,
@@ -278,6 +437,25 @@ class AgentContext:
 
 @dataclass
 class AgentConfig:
+    """Configuration for an agent.
+
+    Attributes:
+        chat_model: The configuration for the chat model.
+        utility_model: The configuration for the utility model.
+        embeddings_model: The configuration for the embeddings model.
+        browser_model: The configuration for the browser model.
+        mcp_servers: A string defining the MCP servers.
+        profile: The agent's profile name.
+        memory_subdir: The subdirectory for the agent's memory.
+        knowledge_subdirs: A list of subdirectories for the agent's knowledge base.
+        browser_http_headers: Custom HTTP headers for browser requests.
+        code_exec_ssh_enabled: Whether SSH code execution is enabled.
+        code_exec_ssh_addr: The SSH address for code execution.
+        code_exec_ssh_port: The SSH port for code execution.
+        code_exec_ssh_user: The SSH user for code execution.
+        code_exec_ssh_pass: The SSH password for code execution.
+        additional: A dictionary for additional configuration parameters.
+    """
     chat_model: models.ModelConfig
     utility_model: models.ModelConfig
     embeddings_model: models.ModelConfig
@@ -299,13 +477,26 @@ class AgentConfig:
 
 @dataclass
 class UserMessage:
+    """Represents a message from the user.
+
+    Attributes:
+        message: The text of the message.
+        attachments: A list of file paths for attachments.
+        system_message: A list of system messages.
+    """
     message: str
     attachments: list[str] = field(default_factory=list[str])
     system_message: list[str] = field(default_factory=list[str])
 
 
 class LoopData:
+    """Holds data for a single iteration of the agent's message loop."""
     def __init__(self, **kwargs):
+        """Initializes the loop data.
+
+        Args:
+            **kwargs: Keyword arguments to override default attributes.
+        """
         self.iteration = -1
         self.system = []
         self.user_message: history.Message | None = None
@@ -322,19 +513,22 @@ class LoopData:
             setattr(self, key, value)
 
 
-# intervention exception class - skips rest of message loop iteration
 class InterventionException(Exception):
+    """Exception raised when a user intervenes in the agent's operation."""
     pass
 
 
-# killer exception class - not forwarded to LLM, cannot be fixed on its own, ends message loop
-
-
 class HandledException(Exception):
+    """Exception raised when an error has been handled and the loop should terminate."""
     pass
 
 
 class Agent:
+    """Represents an autonomous agent that can perform tasks.
+
+    The Agent class is the core of the framework, responsible for managing the
+    agent's lifecycle, communication, and tool usage.
+    """
     DATA_NAME_SUPERIOR = "_superior"
     DATA_NAME_SUBORDINATE = "_subordinate"
     DATA_NAME_CTX_WINDOW = "ctx_window"
@@ -342,6 +536,13 @@ class Agent:
     def __init__(
         self, number: int, config: AgentConfig, context: AgentContext | None = None
     ):
+        """Initializes a new agent.
+
+        Args:
+            number: A unique number for the agent.
+            config: The agent's configuration.
+            context: The agent's execution context. If None, a new one is created.
+        """
         # agent config
         self.config = config
 
@@ -360,6 +561,11 @@ class Agent:
         asyncio.run(self.call_extensions("agent_init"))
 
     async def monologue(self):
+        """The main loop of the agent.
+
+        This method continuously processes messages, calls the language model,
+        and executes tools until a task is completed or an exception occurs.
+        """
         while True:
             try:
                 # loop data dictionary to pass to extensions
@@ -493,6 +699,17 @@ class Agent:
                 await self.call_extensions("monologue_end", loop_data=self.loop_data)  # type: ignore
 
     async def prepare_prompt(self, loop_data: LoopData) -> list[BaseMessage]:
+        """Prepares the prompt for the language model.
+
+        This method assembles the system prompt, message history, and any extra
+        context into a list of messages that can be sent to the model.
+
+        Args:
+            loop_data: The data for the current loop iteration.
+
+        Returns:
+            A list of BaseMessage objects representing the complete prompt.
+        """
         self.context.log.set_progress("Building prompt")
 
         # call extensions before setting prompts
@@ -544,6 +761,14 @@ class Agent:
         return full_prompt
 
     def handle_critical_exception(self, exception: Exception):
+        """Handles critical exceptions that occur during the agent's execution.
+
+        This method logs the error, prints it to the console, and then raises
+        a HandledException to terminate the message loop.
+
+        Args:
+            exception: The exception to handle.
+        """
         if isinstance(exception, HandledException):
             raise exception  # Re-raise the exception to kill the loop
         elif isinstance(exception, asyncio.CancelledError):
@@ -574,6 +799,17 @@ class Agent:
             raise HandledException(exception)  # Re-raise the exception to kill the loop
 
     async def get_system_prompt(self, loop_data: LoopData) -> list[str]:
+        """Gets the system prompt for the current iteration.
+
+        This method calls extensions to allow them to contribute to the system
+        prompt.
+
+        Args:
+            loop_data: The data for the current loop iteration.
+
+        Returns:
+            A list of strings representing the system prompt.
+        """
         system_prompt: list[str] = []
         await self.call_extensions(
             "system_prompt", system_prompt=system_prompt, loop_data=loop_data
@@ -581,6 +817,15 @@ class Agent:
         return system_prompt
 
     def parse_prompt(self, _prompt_file: str, **kwargs):
+        """Parses a prompt file, replacing placeholders and processing includes.
+
+        Args:
+            _prompt_file: The path to the prompt file.
+            **kwargs: Keyword arguments to use as placeholder values.
+
+        Returns:
+            The parsed prompt content, which can be a string or a dictionary.
+        """
         dirs = [files.get_abs_path("prompts")]
         if (
             self.config.profile
@@ -591,6 +836,15 @@ class Agent:
         return prompt
 
     def read_prompt(self, file: str, **kwargs) -> str:
+        """Reads a prompt file as a raw string.
+
+        Args:
+            file: The path to the prompt file.
+            **kwargs: Keyword arguments to use as placeholder values.
+
+        Returns:
+            The content of the prompt file as a string.
+        """
         dirs = [files.get_abs_path("prompts")]
         if (
             self.config.profile
@@ -602,14 +856,38 @@ class Agent:
         return prompt
 
     def get_data(self, field: str):
+        """Gets a value from the agent's data dictionary.
+
+        Args:
+            field: The key to retrieve.
+
+        Returns:
+            The value associated with the key, or None if not found.
+        """
         return self.data.get(field, None)
 
     def set_data(self, field: str, value):
+        """Sets a value in the agent's data dictionary.
+
+        Args:
+            field: The key to set.
+            value: The value to store.
+        """
         self.data[field] = value
 
     def hist_add_message(
         self, ai: bool, content: history.MessageContent, tokens: int = 0
     ):
+        """Adds a message to the history.
+
+        Args:
+            ai: Whether the message is from the AI.
+            content: The content of the message.
+            tokens: The number of tokens in the message.
+
+        Returns:
+            The created message object.
+        """
         self.last_message = datetime.now(timezone.utc)
         # Allow extensions to process content before adding to history
         content_data = {"content": content}
@@ -621,6 +899,15 @@ class Agent:
         )
 
     def hist_add_user_message(self, message: UserMessage, intervention: bool = False):
+        """Adds a user message to the history.
+
+        Args:
+            message: The UserMessage object.
+            intervention: Whether the message is an intervention.
+
+        Returns:
+            The created message object.
+        """
         self.history.new_topic()  # user message starts a new topic in history
 
         # load message template based on intervention
@@ -649,15 +936,41 @@ class Agent:
         return msg
 
     def hist_add_ai_response(self, message: str):
+        """Adds an AI response to the history.
+
+        Args:
+            message: The AI's response message.
+
+        Returns:
+            The created message object.
+        """
         self.loop_data.last_response = message
         content = self.parse_prompt("fw.ai_response.md", message=message)
         return self.hist_add_message(True, content=content)
 
     def hist_add_warning(self, message: history.MessageContent):
+        """Adds a warning message to the history.
+
+        Args:
+            message: The warning message.
+
+        Returns:
+            The created message object.
+        """
         content = self.parse_prompt("fw.warning.md", message=message)
         return self.hist_add_message(False, content=content)
 
     def hist_add_tool_result(self, tool_name: str, tool_result: str, **kwargs):
+        """Adds a tool result to the history.
+
+        Args:
+            tool_name: The name of the tool.
+            tool_result: The result of the tool's execution.
+            **kwargs: Additional data to include in the message.
+
+        Returns:
+            The created message object.
+        """
         data = {
             "tool_name": tool_name,
             "tool_result": tool_result,
@@ -674,17 +987,18 @@ class Agent:
         topic_filter=None,
         include_history=True,
     ):
-        """Convert messages to text with filtering options.
+        """Converts messages to a single text string with filtering options.
 
         Args:
-            messages: History object or list of messages (default: agent's history)
-            start_index: Start index for message range (0-based)
-            end_index: End index for message range (exclusive, None for all)
-            topic_filter: Filter by topic (not yet implemented)
-            include_history: Include historical topics/bulks (True) or only current (False)
+            messages: A History object or a list of messages. Defaults to the
+                      agent's history.
+            start_index: The starting index for the message range.
+            end_index: The ending index for the message range (exclusive).
+            topic_filter: A filter for topics (not yet implemented).
+            include_history: Whether to include historical topics.
 
         Returns:
-            Text representation of filtered messages
+            A text representation of the filtered messages.
         """
         if messages is None:
             messages = self.history
@@ -727,6 +1041,11 @@ class Agent:
         )
 
     def get_chat_model(self):
+        """Gets the chat model for the agent.
+
+        Returns:
+            An instance of the chat model.
+        """
         return models.get_chat_model(
             self.config.chat_model.provider,
             self.config.chat_model.name,
@@ -735,6 +1054,11 @@ class Agent:
         )
 
     def get_utility_model(self):
+        """Gets the utility model for the agent.
+
+        Returns:
+            An instance of the utility model.
+        """
         return models.get_chat_model(
             self.config.utility_model.provider,
             self.config.utility_model.name,
@@ -743,6 +1067,11 @@ class Agent:
         )
 
     def get_browser_model(self):
+        """Gets the browser model for the agent.
+
+        Returns:
+            An instance of the browser model.
+        """
         return models.get_browser_model(
             self.config.browser_model.provider,
             self.config.browser_model.name,
@@ -751,6 +1080,11 @@ class Agent:
         )
 
     def get_embedding_model(self):
+        """Gets the embedding model for the agent.
+
+        Returns:
+            An instance of the embedding model.
+        """
         return models.get_embedding_model(
             self.config.embeddings_model.provider,
             self.config.embeddings_model.name,
@@ -765,6 +1099,17 @@ class Agent:
         callback: Callable[[str], Awaitable[None]] | None = None,
         background: bool = False,
     ):
+        """Calls the utility model with a system and user message.
+
+        Args:
+            system: The system message.
+            message: The user message.
+            callback: A callback function to stream the response.
+            background: Whether to run the call in the background.
+
+        Returns:
+            The response from the model.
+        """
         model = self.get_utility_model()
 
         # call extensions
@@ -800,6 +1145,17 @@ class Agent:
         reasoning_callback: Callable[[str, str], Awaitable[None]] | None = None,
         background: bool = False,
     ):
+        """Calls the chat model with a list of messages.
+
+        Args:
+            messages: A list of BaseMessage objects.
+            response_callback: A callback for the response stream.
+            reasoning_callback: A callback for the reasoning stream.
+            background: Whether to run the call in the background.
+
+        Returns:
+            A tuple containing the response and reasoning from the model.
+        """
         response = ""
 
         # model class
@@ -820,11 +1176,33 @@ class Agent:
     async def rate_limiter_callback(
         self, message: str, key: str, total: int, limit: int
     ):
+        """Callback function for the rate limiter.
+
+        This method displays a progress bar to indicate that the agent is waiting
+        for the rate limit to reset.
+
+        Args:
+            message: The message to display.
+            key: The key of the rate limit.
+            total: The total number of requests.
+            limit: The rate limit.
+
+        Returns:
+            False to indicate that the rate limiter should not raise an exception.
+        """
         # show the rate limit waiting in a progress bar, no need to spam the chat history
         self.context.log.set_progress(message, True)
         return False
 
     async def handle_intervention(self, progress: str = ""):
+        """Handles user interventions.
+
+        If an intervention message is present, this method adds it to the history
+        and raises an InterventionException to interrupt the current operation.
+
+        Args:
+            progress: Any progress made by the current tool before the intervention.
+        """
         while self.context.paused:
             await asyncio.sleep(0.1)  # wait if paused
         if (
@@ -846,10 +1224,22 @@ class Agent:
             raise InterventionException(msg)
 
     async def wait_if_paused(self):
+        """Waits if the context is paused."""
         while self.context.paused:
             await asyncio.sleep(0.1)
 
     async def process_tools(self, msg: str):
+        """Processes tool usage requests in the agent's message.
+
+        This method parses the message for tool requests, executes the tools,
+        and adds the results to the history.
+
+        Args:
+            msg: The message from the agent.
+
+        Returns:
+            The result of a tool execution if it breaks the loop, otherwise None.
+        """
         # search for tool usage requests in agent message
         tool_request = extract_tools.json_parse_dirty(msg)
 
@@ -944,6 +1334,14 @@ class Agent:
             )
 
     async def handle_reasoning_stream(self, stream: str):
+        """Handles the reasoning stream from the language model.
+
+        This method calls extensions to allow them to process the reasoning
+        stream.
+
+        Args:
+            stream: The reasoning stream text.
+        """
         await self.handle_intervention()
         await self.call_extensions(
             "reasoning_stream",
@@ -952,6 +1350,14 @@ class Agent:
         )
 
     async def handle_response_stream(self, stream: str):
+        """Handles the response stream from the language model.
+
+        This method calls extensions to allow them to process the response
+        stream.
+
+        Args:
+            stream: The response stream text.
+        """
         await self.handle_intervention()
         try:
             if len(stream) < 25:
@@ -977,6 +1383,22 @@ class Agent:
         loop_data: LoopData | None,
         **kwargs,
     ):
+        """Gets a tool by name.
+
+        This method searches for the tool in the agent's profile directory
+        and then in the default tools directory.
+
+        Args:
+            name: The name of the tool.
+            method: The method of the tool to call.
+            args: The arguments for the tool.
+            message: The message that requested the tool.
+            loop_data: The data for the current loop iteration.
+            **kwargs: Additional keyword arguments for the tool.
+
+        Returns:
+            An instance of the tool class.
+        """
         from python.tools.unknown import Unknown
         from python.helpers.tool import Tool
 
@@ -1013,6 +1435,15 @@ class Agent:
         )
 
     async def call_extensions(self, extension_point: str, **kwargs) -> Any:
+        """Calls extensions at a specific extension point.
+
+        Args:
+            extension_point: The name of the extension point.
+            **kwargs: Keyword arguments to pass to the extensions.
+
+        Returns:
+            The result of the extension call.
+        """
         return await call_extensions(
             extension_point=extension_point, agent=self, **kwargs
         )

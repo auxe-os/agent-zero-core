@@ -5,11 +5,31 @@ import asyncio
 
 
 class RenameChat(Extension):
+    """
+    An extension that automatically renames the chat session based on the
+    conversation history. This is done asynchronously in the background.
+    """
 
     async def execute(self, loop_data: LoopData = LoopData(), **kwargs):
+        """
+        Executes the chat renaming extension.
+
+        This method creates an asynchronous task to handle the renaming process,
+        allowing the agent to continue its main tasks without delay.
+
+        Args:
+            loop_data: The current loop data.
+            **kwargs: Arbitrary keyword arguments.
+        """
         asyncio.create_task(self.change_name())
 
     async def change_name(self):
+        """
+        Performs the actual chat renaming process.
+
+        It summarizes the conversation history, calls a utility model to generate
+        a suitable new name, and then updates the chat context with the new name.
+        """
         try:
             # prepare history
             history_text = self.agent.history.output_text()

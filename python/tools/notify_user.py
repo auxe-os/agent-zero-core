@@ -3,8 +3,25 @@ from agent import AgentContext
 from python.helpers.notification import NotificationPriority, NotificationType
 
 class NotifyUserTool(Tool):
+    """
+    A tool for sending notifications to the user interface.
+    """
 
     async def execute(self, **kwargs):
+        """
+        Executes the user notification tool.
+
+        This method sends a notification with a specified message, title, type,
+        and priority to the user interface.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments. Expected keys include 'message',
+                      'title', 'detail', 'type', 'priority', and 'timeout'.
+
+        Returns:
+            A Response object indicating that the notification was sent, or an
+            error message if the input was invalid.
+        """
 
         message = self.args.get("message", "")
         title = self.args.get("title", "")

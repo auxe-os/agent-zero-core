@@ -6,7 +6,25 @@ import os, re
 LEN_MIN = 500
 
 class SaveToolCallFile(Extension):
+    """
+    An extension that saves the result of a tool call to a file if the result is
+    sufficiently long. This is useful for keeping the main history concise while
+_   preserving large outputs for later inspection.
+    """
     async def execute(self, data: dict[str, Any] | None = None, **kwargs):
+        """
+        Executes the extension to save the tool call result.
+
+        This method checks the length of the tool result. If it exceeds a
+        minimum threshold, the result is written to a new text file in the
+        chat's message files directory. The path to this new file is then
+        added to the history data.
+
+        Args:
+            data: A dictionary containing the tool call data, including the
+                  'tool_result'.
+            **kwargs: Arbitrary keyword arguments.
+        """
         if not data:
             return
 

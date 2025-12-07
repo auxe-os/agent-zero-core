@@ -121,6 +121,7 @@ def _truncate_content(text: str | None, type: Type) -> str:
 
 @dataclass
 class LogItem:
+    """Represents a single item in the log."""
     log: "Log"
     no: int
     type: Type
@@ -145,6 +146,17 @@ class LogItem:
         update_progress: ProgressUpdate | None = None,
         **kwargs,
     ):
+        """Updates the log item.
+
+        Args:
+            type: The type of the log item.
+            heading: The heading of the log item.
+            content: The content of the log item.
+            kvps: A dictionary of key-value pairs.
+            temp: Whether the log item is temporary.
+            update_progress: Whether to update the progress bar.
+            **kwargs: Additional key-value pairs.
+        """
         if self.guid == self.log.guid:
             self.log._update_item(
                 self.no,
@@ -163,6 +175,13 @@ class LogItem:
         content: str | None = None,
         **kwargs,
     ):
+        """Streams content to the log item.
+
+        Args:
+            heading: The heading to append.
+            content: The content to append.
+            **kwargs: Additional key-value pairs to append.
+        """
         if heading is not None:
             self.update(heading=self.heading + heading)
         if content is not None:
@@ -173,6 +192,11 @@ class LogItem:
             self.update(**{k: prev + v})
 
     def output(self):
+        """Returns a dictionary representation of the log item.
+
+        Returns:
+            A dictionary representation of the log item.
+        """
         return {
             "no": self.no,
             "id": self.id,  # Include id in output
@@ -185,8 +209,10 @@ class LogItem:
 
 
 class Log:
+    """A class for logging messages."""
 
     def __init__(self):
+        """Initializes a Log."""
         self.context: "AgentContext|None" = None # set from outside
         self.guid: str = str(uuid.uuid4())
         self.updates: list[int] = []
@@ -204,6 +230,21 @@ class Log:
         id: Optional[str] = None,
         **kwargs,
     ) -> LogItem:
+        """Logs a message.
+
+        Args:
+            type: The type of the log message.
+            heading: The heading of the log message.
+            content: The content of the log message.
+            kvps: A dictionary of key-value pairs.
+            temp: Whether the log message is temporary.
+            update_progress: Whether to update the progress bar.
+            id: The ID of the log item.
+            **kwargs: Additional key-value pairs.
+
+        Returns:
+            The created log item.
+        """
 
         # add a minimal item to the log
         item = LogItem(
@@ -239,6 +280,7 @@ class Log:
         id: Optional[str] = None,
         **kwargs,
     ):
+        """Updates a log item."""
         item = self.logs[no]
 
         if id is not None:
@@ -279,6 +321,13 @@ class Log:
         self._update_progress_from_item(item)
 
     def set_progress(self, progress: str, no: int = 0, active: bool = True):
+        """Sets the progress bar.
+
+        Args:
+            progress: The progress message.
+            no: The log item number to associate the progress with.
+            active: Whether the progress bar is active.
+        """
         progress = self._mask_recursive(progress)
         progress = _truncate_progress(progress)
         self.progress = progress
@@ -288,9 +337,19 @@ class Log:
         self.progress_active = active
 
     def set_initial_progress(self):
+        """Sets the initial progress bar message."""
         self.set_progress("Waiting for input", 0, False)
 
     def output(self, start=None, end=None):
+        """Returns a list of log items.
+
+        Args:
+            start: The starting index of the log items to return.
+            end: The ending index of the log items to return.
+
+        Returns:
+            A list of log items.
+        """
         if start is None:
             start = 0
         if end is None:
@@ -306,12 +365,14 @@ class Log:
         return out
 
     def reset(self):
+        """Resets the log."""
         self.guid = str(uuid.uuid4())
         self.updates = []
         self.logs = []
         self.set_initial_progress()
 
     def _update_progress_from_item(self, item: LogItem):
+        """Updates the progress bar from a log item."""
         if item.heading and item.update_progress != "none":
             if item.no >= self.progress_no:
                 self.set_progress(
@@ -320,7 +381,7 @@ class Log:
                 )
 
     def _mask_recursive(self, obj: T) -> T:
-        """Recursively mask secrets in nested objects."""
+        """Recursively masks secrets in nested objects."""
         try:
             from agent import AgentContext
             secrets_mgr = get_secrets_manager(self.context or AgentContext.current())

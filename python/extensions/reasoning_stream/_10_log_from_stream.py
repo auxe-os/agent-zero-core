@@ -8,8 +8,24 @@ import math
 from python.extensions.before_main_llm_call._10_log_for_stream import build_heading, build_default_heading
 
 class LogFromStream(Extension):
+    """
+    An extension that logs the agent's reasoning process as it streams from the LLM.
+    It creates or updates a log item to display the in-progress reasoning.
+    """
 
     async def execute(self, loop_data: LoopData = LoopData(), text: str = "", **kwargs):
+        """
+        Executes the reasoning stream logging extension.
+
+        This method updates the heading of the "Generating..." log item with a
+        visual indicator of the reasoning text's length and streams the
+        reasoning text to the log.
+
+        Args:
+            loop_data: The current loop data, containing the log item.
+            text: The chunk of reasoning text that has been streamed.
+            **kwargs: Arbitrary keyword arguments.
+        """
 
         # thought length indicator
         pipes = "|" * math.ceil(math.sqrt(len(text)))

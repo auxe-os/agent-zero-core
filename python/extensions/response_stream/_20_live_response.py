@@ -7,6 +7,10 @@ from python.helpers import log
 
 
 class LiveResponse(Extension):
+    """
+    An extension that handles the live streaming of the agent's final response
+    to the user interface.
+    """
 
     async def execute(
         self,
@@ -15,6 +19,19 @@ class LiveResponse(Extension):
         parsed: dict = {},
         **kwargs,
     ):
+        """
+        Executes the live response extension.
+
+        This method checks if the streamed tool call is a 'response' tool. If it
+        is, it creates or updates a 'response' type log item to display the
+        streaming text to the user in real-time.
+
+        Args:
+            loop_data: The current loop data.
+            text: The full response text streamed so far.
+            parsed: A dictionary of parsed components from the stream.
+            **kwargs: Arbitrary keyword arguments.
+        """
         try:
             if (
                 not "tool_name" in parsed

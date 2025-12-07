@@ -31,17 +31,37 @@ OUTPUT_TIMEOUTS: dict[str, int] = {
 
 @dataclass
 class ShellWrap:
+    """
+    Wraps a shell session and its running state.
+
+    Attributes:
+        id: The session ID.
+        session: The interactive shell session object (local or SSH).
+        running: A boolean indicating if a command is currently running in the session.
+    """
     id: int
     session: LocalInteractiveSession | SSHInteractiveSession
     running: bool
 
 @dataclass
 class State:
+    """
+    Holds the state of the CodeExecution tool.
+
+    Attributes:
+        ssh_enabled: A boolean indicating if SSH is enabled for code execution.
+        shells: A dictionary of active shell sessions, keyed by session ID.
+    """
     ssh_enabled: bool
     shells: dict[int, ShellWrap]
 
 
 class CodeExecution(Tool):
+    """
+    A tool for executing code in various runtimes (Python, Node.js, terminal),
+    managing shell sessions, and handling output. It supports both local and SSH
+    execution environments.
+    """
 
     # Common shell prompt regex patterns (add more as needed)
     prompt_patterns = [
@@ -59,7 +79,19 @@ class CodeExecution(Tool):
     ]
 
     async def execute(self, **kwargs) -> Response:
+        """
+        Executes code based on the provided runtime and arguments.
 
+        This is the main entry point for the tool. It dispatches the execution
+        to the appropriate method based on the 'runtime' argument.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments, typically containing 'runtime',
+                      'code', and 'session'.
+
+        Returns:
+            A Response object containing the output of the execution.
+        """
         await self.agent.handle_intervention()  # wait for intervention and handle it, if paused
 
         runtime = self.args.get("runtime", "").lower().strip()
@@ -96,6 +128,12 @@ class CodeExecution(Tool):
         return Response(message=response, break_loop=False)
 
     def get_log_object(self):
+        """
+        Creates a log object for the code execution event.
+
+        Returns:
+            A log object with the type 'code_exe' and relevant details.
+        """
         return self.agent.context.log.log(
             type="code_exe",
             heading=self.get_heading(),
@@ -104,6 +142,16 @@ class CodeExecution(Tool):
         )
 
     def get_heading(self, text: str = ""):
+        """
+        Generates a heading for the log output.
+
+        Args:
+            text: Optional text to include in the heading. If not provided,
+                  it's generated from the tool name and runtime.
+
+        Returns:
+            A formatted string for the log heading.
+        """
         if not text:
             text = f"{self.name} - {self.args['runtime'] if 'runtime' in self.args else 'unknown'}"
         # text = truncate_text_string(text, 60) # don't truncate here, log.py takes care of it
@@ -112,9 +160,27 @@ class CodeExecution(Tool):
         return f"icon://terminal {session_text}{text}"
 
     async def after_execution(self, response, **kwargs):
+        """
+        Adds the tool's result to the agent's history after execution.
+
+        Args:
+            response: The Response object from the execution.
+            **kwargs: Arbitrary keyword arguments.
+        """
         self.agent.hist_add_tool_result(self.name, response.message, **(response.additional or {}))
 
     async def prepare_state(self, reset=False, session: int | None = None):
+        """
+        Prepares the state for code execution, initializing or resetting shell sessions
+        as needed.
+
+        Args:
+            reset: If True, resets the specified session or all sessions.
+            session: The specific session ID to prepare or reset.
+
+        Returns:
+            The prepared State object.
+        """
         self.state: State | None = self.agent.get_data("_cet_state")
         # always reset state when ssh_enabled changes
         if not self.state or self.state.ssh_enabled != self.agent.config.code_exec_ssh_enabled:
@@ -160,12 +226,34 @@ class CodeExecution(Tool):
         return self.state
 
     async def execute_python_code(self, session: int, code: str, reset: bool = False):
+        """
+        Executes a string of Python code in an IPython session.
+
+        Args:
+            session: The session ID to use.
+            code: The Python code to execute.
+            reset: If True, resets the terminal session before execution.
+
+        Returns:
+            The output from the IPython session.
+        """
         escaped_code = shlex.quote(code)
         command = f"ipython -c {escaped_code}"
         prefix = "python> " + self.format_command_for_output(code) + "\n\n"
         return await self.terminal_session(session, command, reset, prefix)
 
     async def execute_nodejs_code(self, session: int, code: str, reset: bool = False):
+        """
+        Executes a string of JavaScript code using Node.js.
+
+        Args:
+            session: The session ID to use.
+            code: The JavaScript code to execute.
+            reset: If True, resets the terminal session before execution.
+
+        Returns:
+            The output from the Node.js execution.
+        """
         escaped_code = shlex.quote(code)
         command = f"node /exe/node_eval.js {escaped_code}"
         prefix = "node> " + self.format_command_for_output(code) + "\n\n"
@@ -174,12 +262,39 @@ class CodeExecution(Tool):
     async def execute_terminal_command(
         self, session: int, command: str, reset: bool = False
     ):
+        """
+        Executes a command in the terminal.
+
+        Args:
+            session: The session ID to use.
+            command: The terminal command to execute.
+            reset: If True, resets the terminal session before execution.
+
+        Returns:
+            The output from the terminal command.
+        """
         prefix = ("bash>" if not runtime.is_windows() or self.agent.config.code_exec_ssh_enabled else "PS>") + self.format_command_for_output(command) + "\n\n"
         return await self.terminal_session(session, command, reset, prefix)
 
     async def terminal_session(
         self, session: int, command: str, reset: bool = False, prefix: str = "", timeouts: dict | None = None
     ):
+        """
+        Manages a terminal session for executing a command.
+
+        This method prepares the session, sends the command, and retrieves the
+        output. It also handles retries on lost connections.
+
+        Args:
+            session: The session ID to use.
+            command: The command to execute.
+            reset: If True, resets the terminal session before execution.
+            prefix: A string to prepend to the output.
+            timeouts: An optional dictionary of timeout values.
+
+        Returns:
+            The output from the terminal session.
+        """
 
         self.state = await self.prepare_state(reset=reset, session=session)
 
@@ -222,6 +337,15 @@ class CodeExecution(Tool):
                     raise e
 
     def format_command_for_output(self, command: str):
+        """
+        Formats a command for display by truncating and normalizing it.
+
+        Args:
+            command: The command string to format.
+
+        Returns:
+            A formatted, shorter version of the command.
+        """
         # truncate long commands
         short_cmd = command[:200]
         # normalize whitespace for cleaner output
@@ -244,6 +368,26 @@ class CodeExecution(Tool):
         prefix="",
         timeouts: dict | None = None,
     ):
+        """
+        Retrieves the output from a terminal session with various timeouts.
+
+        This method reads the output from the shell, handles timeouts, and detects
+        shell prompts or dialogs to determine when the command has finished.
+
+        Args:
+            session: The session ID to read from.
+            reset_full_output: If True, resets the full output buffer.
+            first_output_timeout: Timeout for waiting for the first piece of output.
+            between_output_timeout: Timeout for waiting between subsequent outputs.
+            dialog_timeout: Timeout for detecting potential dialog prompts.
+            max_exec_timeout: Maximum total execution time.
+            sleep_time: Time to sleep between output reads.
+            prefix: A string to prepend to the output.
+            timeouts: An optional dictionary to override default timeout values.
+
+        Returns:
+            The captured output from the terminal.
+        """
 
         # if not self.state:
         self.state = await self.prepare_state(session=session)
@@ -377,6 +521,20 @@ class CodeExecution(Tool):
         reset_full_output=True, 
         prefix=""
     ):
+        """
+        Handles the case where a command is already running in a session.
+
+        It checks the output for prompts or dialogs and returns an informational
+        message if the session is busy.
+
+        Args:
+            session: The session ID to check.
+            reset_full_output: If True, resets the full output buffer.
+            prefix: A string to prepend to the output.
+
+        Returns:
+            A response string if the session is running, otherwise None.
+        """
         if not self.state or session not in self.state.shells:
             return None
         if not self.state.shells[session].running:
@@ -424,11 +582,27 @@ class CodeExecution(Tool):
         return response
     
     def mark_session_idle(self, session: int = 0):
+        """
+        Marks a session as idle, indicating that a command has finished.
+
+        Args:
+            session: The ID of the session to mark as idle.
+        """
         # Mark session as idle - command finished
         if self.state and session in self.state.shells:
             self.state.shells[session].running = False
 
     async def reset_terminal(self, session=0, reason: str | None = None):
+        """
+        Resets a terminal session.
+
+        Args:
+            session: The ID of the session to reset.
+            reason: An optional reason for the reset, to be printed to the console.
+
+        Returns:
+            An informational message about the reset.
+        """
         # Print the reason for the reset to the console if provided
         if reason:
             PrintStyle(font_color="#FFA500", bold=True).print(
@@ -448,6 +622,17 @@ class CodeExecution(Tool):
         return response
 
     def get_heading_from_output(self, output: str, skip_lines=0, done=False):
+        """
+        Generates a log heading from the last non-empty line of output.
+
+        Args:
+            output: The output string to process.
+            skip_lines: The number of lines to skip from the end of the output.
+            done: If True, adds a 'done' icon to the heading.
+
+        Returns:
+            A formatted heading string.
+        """
         done_icon = " icon://done_all" if done else ""
 
         if not output:
@@ -465,6 +650,18 @@ class CodeExecution(Tool):
         return self.get_heading() + done_icon
 
     def fix_full_output(self, output: str):
+        """
+        Cleans up and truncates the terminal output.
+
+        This method removes escape sequences and truncates the output to a
+        reasonable length.
+
+        Args:
+            output: The raw output string.
+
+        Returns:
+            The cleaned and truncated output string.
+        """
         # remove any single byte \xXX escapes
         output = re.sub(r"(?<!\\)\\x[0-9A-Fa-f]{2}", "", output)
         # Strip every line of output before truncation

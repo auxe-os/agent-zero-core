@@ -6,17 +6,38 @@ if TYPE_CHECKING:
     from agent import Agent
 
 class Extension:
+    """An abstract base class for extensions."""
 
     def __init__(self, agent: "Agent|None", **kwargs):
+        """Initializes an Extension.
+
+        Args:
+            agent: The agent that is using the extension.
+            **kwargs: Additional keyword arguments.
+        """
         self.agent: "Agent" = agent # type: ignore < here we ignore the type check as there are currently no extensions without an agent
         self.kwargs = kwargs
 
     @abstractmethod
     async def execute(self, **kwargs) -> Any:
+        """Executes the extension.
+
+        This method must be implemented by subclasses.
+
+        Args:
+            **kwargs: The arguments for the extension.
+        """
         pass
 
 
 async def call_extensions(extension_point: str, agent: "Agent|None" = None, **kwargs) -> Any:
+    """Calls all extensions for a given extension point.
+
+    Args:
+        extension_point: The name of the extension point.
+        agent: The agent that is calling the extensions.
+        **kwargs: The arguments to pass to the extensions.
+    """
 
     # get default extensions
     defaults = await _get_extensions("python/extensions/" + extension_point)

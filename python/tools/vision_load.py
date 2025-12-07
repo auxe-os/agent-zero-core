@@ -12,7 +12,25 @@ TOKENS_ESTIMATE = 1500
 
 
 class VisionLoad(Tool):
+    """
+    A tool for loading, compressing, and base64-encoding images to be used
+    in vision-enabled models.
+    """
     async def execute(self, paths: list[str] = [], **kwargs) -> Response:
+        """
+        Executes the vision load tool.
+
+        This method processes a list of image file paths, reads each image,
+        compresses it, and encodes it as a base64 string.
+
+        Args:
+            paths: A list of file paths to the images to be loaded.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            A dummy Response object. The actual processing and history update
+            happen in the `after_execution` method.
+        """
 
         self.images_dict = {}
         template: list[dict[str, str]] = []  # type: ignore
@@ -52,6 +70,14 @@ class VisionLoad(Tool):
         return Response(message="dummy", break_loop=False)
 
     async def after_execution(self, response: Response, **kwargs):
+        """
+        Adds the processed images to the agent's context and history after the
+        tool has executed.
+
+        Args:
+            response: The Response object from the execute method.
+            **kwargs: Arbitrary keyword arguments.
+        """
 
         # build image data messages for LLMs, or error message
         content = []

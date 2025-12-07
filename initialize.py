@@ -5,6 +5,19 @@ from python.helpers.print_style import PrintStyle
 
 
 def initialize_agent(override_settings: dict | None = None):
+    """Initializes the agent's configuration.
+
+    This function loads the settings, creates model configurations, and
+    constructs the agent's configuration object. It also applies any
+    runtime arguments and sets the SSH and Docker settings.
+
+    Args:
+        override_settings: A dictionary of settings to override the default
+                           settings.
+
+    Returns:
+        The agent's configuration object.
+    """
     current_settings = settings.get_settings()
     if override_settings:
         current_settings = settings.merge_settings(current_settings, override_settings)
@@ -120,12 +133,14 @@ def initialize_agent(override_settings: dict | None = None):
     return config
 
 def initialize_chats():
+    """Initializes the chat history."""
     from python.helpers import persist_chat
     async def initialize_chats_async():
         persist_chat.load_tmp_chats()
     return defer.DeferredTask().start_task(initialize_chats_async)
 
 def initialize_mcp():
+    """Initializes the MCP."""
     set = settings.get_settings()
     async def initialize_mcp_async():
         from python.helpers.mcp_handler import initialize_mcp as _initialize_mcp
@@ -133,15 +148,22 @@ def initialize_mcp():
     return defer.DeferredTask().start_task(initialize_mcp_async)
 
 def initialize_job_loop():
+    """Initializes the job loop."""
     from python.helpers.job_loop import run_loop
     return defer.DeferredTask("JobLoop").start_task(run_loop)
 
 def initialize_preload():
+    """Initializes the preload."""
     import preload
     return defer.DeferredTask().start_task(preload.preload)
 
 
 def _args_override(config):
+    """Overrides the configuration with runtime arguments.
+
+    Args:
+        config: The agent's configuration object.
+    """
     # update config with runtime args
     for key, value in runtime.args.items():
         if hasattr(config, key):
@@ -163,6 +185,12 @@ def _args_override(config):
 
 
 def _set_runtime_config(config: AgentConfig, set: settings.Settings):
+    """Sets the runtime configuration.
+
+    Args:
+        config: The agent's configuration object.
+        set: The settings object.
+    """
     ssh_conf = settings.get_runtime_config(set)
     for key, value in ssh_conf.items():
         if hasattr(config, key):

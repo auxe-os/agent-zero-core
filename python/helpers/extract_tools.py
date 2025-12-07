@@ -7,6 +7,15 @@ import regex
 from fnmatch import fnmatch
 
 def json_parse_dirty(json:str) -> dict[str,Any] | None:
+    """Parses a dirty JSON string and returns a dictionary.
+
+    Args:
+        json: The dirty JSON string to parse.
+
+    Returns:
+        A dictionary representation of the JSON object, or None if parsing
+        fails.
+    """
     if not json or not isinstance(json, str):
         return None
 
@@ -21,6 +30,15 @@ def json_parse_dirty(json:str) -> dict[str,Any] | None:
     return None
 
 def extract_json_object_string(content):
+    """Extracts a JSON object string from a larger string.
+
+    Args:
+        content: The string to extract the JSON object from.
+
+    Returns:
+        The extracted JSON object string, or an empty string if no object
+        is found.
+    """
     start = content.find('{')
     if start == -1:
         return ""
@@ -35,6 +53,14 @@ def extract_json_object_string(content):
         return content[start:end+1]
 
 def extract_json_string(content):
+    """Extracts a JSON string from a larger string.
+
+    Args:
+        content: The string to extract the JSON from.
+
+    Returns:
+        The extracted JSON string, or an empty string if no JSON is found.
+    """
     # Regular expression pattern to match a JSON object
     pattern = r'\{(?:[^{}]|(?R))*\}|\[(?:[^\[\]]|(?R))*\]|"(?:\\.|[^"\\])*"|true|false|null|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?'
 
@@ -48,6 +74,14 @@ def extract_json_string(content):
         return ""
 
 def fix_json_string(json_string):
+    """Fixes a JSON string by escaping unescaped line breaks.
+
+    Args:
+        json_string: The JSON string to fix.
+
+    Returns:
+        The fixed JSON string.
+    """
     # Function to replace unescaped line breaks within JSON string values
     def replace_unescaped_newlines(match):
         return match.group(0).replace('\n', '\\n')
@@ -60,6 +94,14 @@ def fix_json_string(json_string):
 T = TypeVar('T')  # Define a generic type variable
 
 def import_module(file_path: str) -> ModuleType:
+    """Imports a Python module from a file path.
+
+    Args:
+        file_path: The path to the Python file.
+
+    Returns:
+        The imported module.
+    """
     # Handle file paths with periods in the name using importlib.util
     abs_path = get_abs_path(file_path)
     module_name = os.path.basename(abs_path).replace('.py', '')
@@ -74,6 +116,18 @@ def import_module(file_path: str) -> ModuleType:
     return module
 
 def load_classes_from_folder(folder: str, name_pattern: str, base_class: Type[T], one_per_file: bool = True) -> list[Type[T]]:
+    """Loads all classes from a folder that match a given pattern and are a
+    subclass of a given base class.
+
+    Args:
+        folder: The folder to load classes from.
+        name_pattern: A glob pattern to match filenames against.
+        base_class: The base class to filter by.
+        one_per_file: Whether to load only one class per file.
+
+    Returns:
+        A list of the loaded classes.
+    """
     classes = []
     abs_folder = get_abs_path(folder)
 
@@ -102,6 +156,16 @@ def load_classes_from_folder(folder: str, name_pattern: str, base_class: Type[T]
     return classes
 
 def load_classes_from_file(file: str, base_class: type[T], one_per_file: bool = True) -> list[type[T]]:
+    """Loads all classes from a file that are a subclass of a given base class.
+
+    Args:
+        file: The file to load classes from.
+        base_class: The base class to filter by.
+        one_per_file: Whether to load only one class per file.
+
+    Returns:
+        A list of the loaded classes.
+    """
     classes = []
     # Use the new import_module function
     module = import_module(file)

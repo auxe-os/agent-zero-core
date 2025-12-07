@@ -8,7 +8,11 @@ _context_data: ContextVar[Optional[Dict[str, Any]]] = ContextVar("_context_data"
 
 
 def _ensure_context() -> Dict[str, Any]:
-    """Make sure a context dict exists, and return it."""
+    """Ensures that a context dictionary exists and returns it.
+
+    Returns:
+        The context dictionary.
+    """
     data = _context_data.get()
     if data is None:
         data = {}
@@ -17,7 +21,12 @@ def _ensure_context() -> Dict[str, Any]:
 
 
 def set_context_data(key: str, value: Any):
-    """Set context data for the current async/task context."""
+    """Sets a key-value pair in the current async/task context.
+
+    Args:
+        key: The key to set.
+        value: The value to set.
+    """
     data = _ensure_context()
     if data.get(key) == value:
         return
@@ -26,7 +35,11 @@ def set_context_data(key: str, value: Any):
 
 
 def delete_context_data(key: str):
-    """Delete a key from the current async/task context."""
+    """Deletes a key from the current async/task context.
+
+    Args:
+        key: The key to delete.
+    """
     data = _ensure_context()
     if key in data:
         del data[key]
@@ -34,7 +47,19 @@ def delete_context_data(key: str):
 
 
 def get_context_data(key: Optional[str] = None, default: T = None) -> T:
-    """Get a key from the current context, or the full dict if key is None."""
+    """Gets a value from the current context.
+
+    If a key is provided, returns the value for that key, or the default
+    value if the key is not found. If no key is provided, returns the entire
+    context dictionary.
+
+    Args:
+        key: The key to get.
+        default: The default value to return if the key is not found.
+
+    Returns:
+        The value for the given key, or the entire context dictionary.
+    """
     data = _ensure_context()
     if key is None:
         return cast(T, data)
@@ -42,5 +67,5 @@ def get_context_data(key: Optional[str] = None, default: T = None) -> T:
 
 
 def clear_context_data():
-    """Completely clear the context dict."""
+    """Clears the entire context dictionary."""
     _context_data.set({})

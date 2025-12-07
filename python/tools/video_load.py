@@ -15,6 +15,10 @@ VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".webm", ".m4v", ".wmv", ".f
 
 
 class VideoLoad(Tool):
+    """
+    A tool for extracting frames from video files to be used for vision analysis.
+    It supports different strategies for frame selection.
+    """
     async def execute(
         self,
         paths: list[str] = [],
@@ -133,7 +137,17 @@ class VideoLoad(Tool):
     def _get_frame_indices(
         self, total_frames: int, max_frames: int, strategy: str
     ) -> list[int]:
-        """Calculate which frame indices to extract."""
+        """
+        Calculate which frame indices to extract based on the chosen strategy.
+
+        Args:
+            total_frames: The total number of frames in the video.
+            max_frames: The maximum number of frames to extract.
+            strategy: The frame selection strategy ('uniform', 'first').
+
+        Returns:
+            A list of frame indices to be extracted.
+        """
         if total_frames <= 0:
             return []
 
@@ -150,7 +164,14 @@ class VideoLoad(Tool):
         return [int(i * step) for i in range(max_frames)]
 
     async def after_execution(self, response: Response, **kwargs):
-        """Add extracted frames to agent's context."""
+        """
+        Adds the extracted frames to the agent's context and history after
+        the tool has executed. It also constructs and logs the final result message.
+
+        Args:
+            response: The Response object from the execute method.
+            **kwargs: Arbitrary keyword arguments.
+        """
         content = []
 
         if self.frames_data:

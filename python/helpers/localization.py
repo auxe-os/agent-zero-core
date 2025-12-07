@@ -7,22 +7,28 @@ from python.helpers.dotenv import get_dotenv_value, save_dotenv_value
 
 
 class Localization:
-    """
-    Localization class for handling timezone conversions between UTC and local time.
-    Now stores a fixed UTC offset (in minutes) derived from the provided timezone name
-    to avoid noisy updates when equivalent timezones share the same offset.
-    """
+    """A class for handling timezone conversions between UTC and local time."""
 
     # singleton
     _instance = None
 
     @classmethod
     def get(cls, *args, **kwargs):
+        """Gets the singleton instance of the Localization class.
+
+        Returns:
+            The singleton instance of the Localization class.
+        """
         if cls._instance is None:
             cls._instance = cls(*args, **kwargs)
         return cls._instance
 
     def __init__(self, timezone: str | None = None):
+        """Initializes a Localization instance.
+
+        Args:
+            timezone: The timezone to use.
+        """
         self.timezone: str = "UTC"
         self._offset_minutes: int = 0
         self._last_timezone_change: datetime | None = None
@@ -47,19 +53,36 @@ class Localization:
                 save_dotenv_value("DEFAULT_USER_UTC_OFFSET_MINUTES", str(self._offset_minutes))
 
     def get_timezone(self) -> str:
+        """Gets the current timezone.
+
+        Returns:
+            The current timezone.
+        """
         return self.timezone
 
     def _compute_offset_minutes(self, timezone_name: str) -> int:
+        """Computes the UTC offset in minutes for a given timezone."""
         tzinfo = pytz.timezone(timezone_name)
         now_in_tz = datetime.now(tzinfo)
         offset = now_in_tz.utcoffset()
         return int(offset.total_seconds() // 60) if offset else 0
 
     def get_offset_minutes(self) -> int:
+        """Gets the current UTC offset in minutes.
+
+        Returns:
+            The current UTC offset in minutes.
+        """
         return self._offset_minutes
 
     def _can_change_timezone(self) -> bool:
-        """Check if timezone can be changed (rate limited to once per hour)."""
+        """Checks if the timezone can be changed.
+
+        The timezone can only be changed once per hour.
+
+        Returns:
+            True if the timezone can be changed, False otherwise.
+        """
         if self._last_timezone_change is None:
             return True
 
@@ -67,7 +90,11 @@ class Localization:
         return time_diff >= timedelta(hours=1)
 
     def set_timezone(self, timezone: str) -> None:
-        """Set the timezone name, but internally store and compare by UTC offset minutes."""
+        """Sets the timezone.
+
+        Args:
+            timezone: The timezone to set.
+        """
         try:
             # Validate timezone and compute its current offset
             _ = pytz.timezone(timezone)
@@ -103,10 +130,13 @@ class Localization:
             save_dotenv_value("DEFAULT_USER_UTC_OFFSET_MINUTES", "0")
 
     def localtime_str_to_utc_dt(self, localtime_str: str | None) -> datetime | None:
-        """
-        Convert a local time ISO string to a UTC datetime object.
-        Returns None if input is None or invalid.
-        When input lacks tzinfo, assume the configured fixed UTC offset.
+        """Converts a local time string to a UTC datetime object.
+
+        Args:
+            localtime_str: The local time string to convert.
+
+        Returns:
+            A UTC datetime object, or None if the input is invalid.
         """
         if not localtime_str:
             return None
@@ -136,9 +166,15 @@ class Localization:
             return None
 
     def utc_dt_to_localtime_str(self, utc_dt: datetime | None, sep: str = "T", timespec: str = "auto") -> str | None:
-        """
-        Convert a UTC datetime object to a local time ISO string using the fixed UTC offset.
-        Returns None if input is None.
+        """Converts a UTC datetime object to a local time string.
+
+        Args:
+            utc_dt: The UTC datetime object to convert.
+            sep: The separator to use between the date and time.
+            timespec: The time specification to use.
+
+        Returns:
+            A local time string, or None if the input is invalid.
         """
         if utc_dt is None:
             return None
@@ -162,9 +198,13 @@ class Localization:
             return None
 
     def serialize_datetime(self, dt: datetime | None) -> str | None:
-        """
-        Serialize a datetime object to ISO format string using the user's fixed UTC offset.
-        This ensures the frontend receives dates with the correct current offset for display.
+        """Serializes a datetime object to an ISO format string.
+
+        Args:
+            dt: The datetime object to serialize.
+
+        Returns:
+            An ISO format string, or None if the input is invalid.
         """
         if dt is None:
             return None

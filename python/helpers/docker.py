@@ -8,7 +8,17 @@ from python.helpers.print_style import PrintStyle
 from python.helpers.log import Log
 
 class DockerContainerManager:
+    """A class for managing Docker containers."""
     def __init__(self, image: str, name: str, ports: Optional[dict[str, int]] = None, volumes: Optional[dict[str, dict[str, str]]] = None,logger: Log|None=None):
+        """Initializes a DockerContainerManager.
+
+        Args:
+            image: The name of the Docker image to use.
+            name: The name of the container.
+            ports: A dictionary of port mappings.
+            volumes: A dictionary of volume mappings.
+            logger: A logger object.
+        """
         self.logger = logger
         self.image = image
         self.name = name
@@ -17,6 +27,7 @@ class DockerContainerManager:
         self.init_docker()
                 
     def init_docker(self):
+        """Initializes the Docker client."""
         self.client = None
         while not self.client:
             try:
@@ -34,6 +45,7 @@ class DockerContainerManager:
         return self.client
                             
     def cleanup_container(self) -> None:
+        """Stops and removes the container."""
         if self.container:
             try:
                 self.container.stop()
@@ -45,6 +57,12 @@ class DockerContainerManager:
                 if self.logger: self.logger.log(type="error", content=f"Failed to stop and remove the container: {e}")
 
     def get_image_containers(self):
+        """Gets a list of containers for the image.
+
+        Returns:
+            A list of dictionaries, where each dictionary represents a
+            container.
+        """
         if not self.client: self.client = self.init_docker()
         containers = self.client.containers.list(all=True, filters={"ancestor": self.image})
         infos = []
@@ -63,6 +81,7 @@ class DockerContainerManager:
         return infos
 
     def start_container(self) -> None:
+        """Starts the container."""
         if not self.client: self.client = self.init_docker()
         existing_container = None
         for container in self.client.containers.list(all=True):

@@ -34,52 +34,24 @@ def file_tree(
     ignore: str | None = None,
     output_mode: Literal["string", "flat", "nested"] = OUTPUT_MODE_STRING,
 ) -> str | list[dict]:
-    """Render a directory tree relative to the repository base path.
+    """Renders a directory tree relative to the repository base path.
 
-    Parameters:
-        relative_path: Base directory (relative to project root) to scan with :func:`get_abs_path`.
-        max_depth: Maximum depth of traversal (0 = unlimited). Depth starts at 1 for root entries.
-        max_lines: Global limit for rendered lines (0 = unlimited). When exceeded, the current depth
-            finishes rendering before deeper levels are skipped.
-        folders_first: When True, folders render before files within each directory.
-        max_folders: Optional per-directory cap (0 = unlimited) on rendered folder entries before adding a
-            ``# N more folders`` comment. When only a single folder exceeds the limit and ``max_folders`` is greater than zero, that folder is rendered
-            directly instead of emitting a summary comment.
-        max_files: Optional per-directory cap (0 = unlimited) on rendered file entries before adding a ``# N more files`` comment.
-            As with folders, a single excess file is rendered when ``max_files`` is greater than zero.
-        sort: Tuple of ``(key, direction)`` where key is one of :data:`SORT_BY_NAME`,
-            :data:`SORT_BY_CREATED`, or :data:`SORT_BY_MODIFIED`; direction is :data:`SORT_ASC`
-            or :data:`SORT_DESC`.
-        ignore: Inline ``.gitignore`` content or ``file:`` reference. Examples::
-
-                ignore=\"\"\"\\n*.pyc\\n__pycache__/\\n!important.py\\n\"\"\"
-                ignore=\"file:.gitignore\"         # relative to scan root
-                ignore=\"file://.gitignore\"       # URI-style relative path
-                ignore=\"file:/abs/path/.gitignore\"
-                ignore=\"file:///abs/path/.gitignore\"
-
-        output_mode: One of :data:`OUTPUT_MODE_STRING`, :data:`OUTPUT_MODE_FLAT`, or
-            :data:`OUTPUT_MODE_NESTED`.
+    Args:
+        relative_path: The base directory to scan, relative to the project
+                       root.
+        max_depth: The maximum depth of traversal. 0 means unlimited.
+        max_lines: The global limit for rendered lines. 0 means unlimited.
+        folders_first: Whether to render folders before files.
+        max_folders: The maximum number of folders to render per directory.
+        max_files: The maximum number of files to render per directory.
+        sort: A tuple of (key, direction) to sort by. Key can be 'name',
+              'created', or 'modified'. Direction can be 'asc' or 'desc'.
+        ignore: A string of .gitignore-style patterns to ignore.
+        output_mode: The output mode, either 'string', 'flat', or 'nested'.
 
     Returns:
-        ``OUTPUT_MODE_STRING`` → ``str``: multi-line ASCII tree.
-        ``OUTPUT_MODE_FLAT`` → ``list[dict]``: flattened sequence of TreeItem dictionaries.
-        ``OUTPUT_MODE_NESTED`` → ``list[dict]``: nested TreeItem dictionaries where folders
-        include ``items`` arrays.
-
-    Notes:
-        * The utility is synchronous; avoid calling from latency-sensitive async loops.
-        * The ASCII renderer walks the established tree depth-first so connectors reflect parent/child structure,
-          while traversal and limit calculations remain breadth-first by depth. When ``max_lines`` is set, the number
-          of non-comment entries (excluding the root banner) never exceeds that limit; informational summary comments
-          are emitted in addition when necessary.
-        * ``created`` and ``modified`` values in structured outputs are timezone-aware UTC
-          :class:`datetime.datetime` objects::
-
-                item = flat_items[0]
-                iso = item[\"created\"].isoformat()
-                epoch = item[\"created\"].timestamp()
-
+        The rendered directory tree, either as a string or a list of
+        dictionaries.
     """
     abs_root = get_abs_path(relative_path)
 
@@ -250,6 +222,7 @@ def file_tree(
 
 @dataclass(slots=True)
 class _TreeEntry:
+    """Represents an entry in the file tree."""
     name: str
     level: int
     item_type: Literal["file", "folder", "comment"]
@@ -262,6 +235,11 @@ class _TreeEntry:
     text: str = ""
 
     def as_dict(self) -> dict[str, Any]:
+        """Converts the tree entry to a dictionary.
+
+        Returns:
+            A dictionary representation of the tree entry.
+        """
         return {
             "name": self.name,
             "level": self.level,

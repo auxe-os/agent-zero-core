@@ -11,6 +11,11 @@ DATA_NAME_ITER = "_recall_memories_iter"
 
 
 class RecallMemories(Extension):
+    """
+    An extension that recalls relevant memories and solutions from the vector
+    database to enhance the agent's context. This process is triggered
+    periodically during a conversation.
+    """
 
     # INTERVAL = 3
     # HISTORY = 10000
@@ -21,6 +26,17 @@ class RecallMemories(Extension):
     # THRESHOLD = DEFAULT_MEMORY_THRESHOLD
 
     async def execute(self, loop_data: LoopData = LoopData(), **kwargs):
+        """
+        Executes the memory recall extension.
+
+        This method checks if memory recall is enabled and if the current
+        iteration is at the configured interval. If so, it creates an
+        asynchronous task to search for relevant memories.
+
+        Args:
+            loop_data: The current loop data, including the iteration number.
+            **kwargs: Arbitrary keyword arguments.
+        """
 
         set = settings.get_settings()
 
@@ -48,6 +64,19 @@ class RecallMemories(Extension):
         self.agent.set_data(DATA_NAME_ITER, loop_data.iteration)
 
     async def search_memories(self, log_item: log.LogItem, loop_data: LoopData, **kwargs):
+        """
+        Performs the search for relevant memories and solutions.
+
+        This method generates a search query from the recent conversation,
+        queries the vector database for both general memories and solutions,
+        optionally filters the results using an LLM, and then adds the
+        most relevant findings to the agent's context.
+
+        Args:
+            log_item: The log item to update with the progress of the search.
+            loop_data: The current loop data.
+            **kwargs: Arbitrary keyword arguments.
+        """
 
         # cleanup
         extras = loop_data.extras_persistent

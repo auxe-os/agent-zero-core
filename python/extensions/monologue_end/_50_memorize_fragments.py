@@ -9,8 +9,26 @@ from python.tools.memory_load import DEFAULT_THRESHOLD as DEFAULT_MEMORY_THRESHO
 
 
 class MemorizeMemories(Extension):
+    """
+    An extension that extracts and memorizes key information from the agent's
+    recent conversation history at the end of a monologue. It can consolidate
+    new information with existing memories.
+    """
 
     async def execute(self, loop_data: LoopData = LoopData(), **kwargs):
+        """
+        Executes the memory memorization extension.
+
+        This method checks if memorization is enabled and, if so, creates an
+        asynchronous task to process and store new memories.
+
+        Args:
+            loop_data: The current loop data.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            An asyncio.Task object for the memorization process.
+        """
         # try:
 
         set = settings.get_settings()
@@ -29,6 +47,19 @@ class MemorizeMemories(Extension):
         return task
 
     async def memorize(self, loop_data: LoopData, log_item: LogItem, **kwargs):
+        """
+        Performs the core memorization process.
+
+        This method uses an LLM to extract key information from the conversation,
+        then processes each piece of information. It can either insert them as new
+        memory fragments or use an intelligent consolidation system to merge them
+        with existing memories.
+
+        Args:
+            loop_data: The current loop data.
+            log_item: The log item to update with the progress.
+            **kwargs: Arbitrary keyword arguments.
+        """
 
         set = settings.get_settings()
 

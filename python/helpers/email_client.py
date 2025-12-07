@@ -32,10 +32,7 @@ class Message:
 
 
 class EmailClient:
-    """
-    Async email client for reading messages from IMAP and Exchange servers.
-
-    """
+    """An async email client for reading messages from IMAP and Exchange servers."""
 
     def __init__(
         self,
@@ -46,18 +43,15 @@ class EmailClient:
         password: str = "",
         options: Optional[Dict[str, Any]] = None,
     ):
-        """
-        Initialize email client with connection parameters.
+        """Initializes the email client.
 
         Args:
-            account_type: Type of account - "imap" or "exchange"
-            server: Mail server address (e.g., "imap.gmail.com")
-            port: Server port (default 993 for IMAP SSL)
-            username: Email account username
-            password: Email account password
-            options: Optional configuration dict with keys:
-                - ssl: Use SSL/TLS (default: True)
-                - timeout: Connection timeout in seconds (default: 30)
+            account_type: The type of account, either "imap" or "exchange".
+            server: The mail server address.
+            port: The server port.
+            username: The email account username.
+            password: The email account password.
+            options: A dictionary of options, including 'ssl' and 'timeout'.
         """
         self.account_type = account_type.lower()
         self.server = server
@@ -74,7 +68,7 @@ class EmailClient:
         self.exchange_account = None
 
     async def connect(self) -> None:
-        """Establish connection to email server."""
+        """Establishes a connection to the email server."""
         try:
             if self.account_type == "imap":
                 await self._connect_imap()
@@ -91,7 +85,7 @@ class EmailClient:
             raise RepairableException(f"Email connection failed: {err}") from e
 
     async def _connect_imap(self) -> None:
-        """Establish IMAP connection."""
+        """Establishes an IMAP connection."""
         loop = asyncio.get_event_loop()
 
         def _sync_connect():
@@ -111,7 +105,7 @@ class EmailClient:
         PrintStyle.standard(f"Connected to IMAP server: {self.server}")
 
     async def _connect_exchange(self) -> None:
-        """Establish Exchange connection."""
+        """Establishes an Exchange connection."""
         try:
             from exchangelib import Account, Configuration, Credentials, DELEGATE
 
@@ -135,7 +129,7 @@ class EmailClient:
             ) from e
 
     async def disconnect(self) -> None:
-        """Clean up connection."""
+        """Disconnects from the email server."""
         try:
             if self.client:
                 loop = asyncio.get_event_loop()
@@ -153,19 +147,14 @@ class EmailClient:
         download_folder: str,
         filter: Optional[Dict[str, Any]] = None,
     ) -> List[Message]:
-        """
-        Read messages based on filter criteria.
+        """Reads messages based on the given filter criteria.
 
         Args:
-            download_folder: Folder to save attachments (relative to /a0/)
-            filter: Filter criteria dict with keys:
-                - unread: Boolean to filter unread messages (default: True)
-                - sender: Sender pattern with wildcards (e.g., "*@company.com")
-                - subject: Subject pattern with wildcards (e.g., "*invoice*")
-                - since_date: Optional datetime for date filtering
+            download_folder: The folder to save attachments in.
+            filter: A dictionary of filter criteria.
 
         Returns:
-            List of Message objects with attachments saved to download_folder
+            A list of Message objects.
         """
         filter = filter or {}
 
@@ -562,34 +551,23 @@ async def read_messages(
     options: Optional[Dict[str, Any]] = None,
     filter: Optional[Dict[str, Any]] = None,
 ) -> List[Message]:
-    """
-    Convenience wrapper for reading email messages.
+    """A convenience wrapper for reading email messages.
 
-    Automatically handles connection and disconnection.
+    This function automatically handles the connection and disconnection of the
+    email client.
 
     Args:
-        account_type: "imap" or "exchange"
-        server: Mail server address
-        port: Server port (default 993 for IMAP SSL)
-        username: Email username
-        password: Email password
-        download_folder: Folder to save attachments (relative to /a0/)
-        options: Optional configuration dict
-        filter: Filter criteria dict
+        account_type: The type of account, either "imap" or "exchange".
+        server: The mail server address.
+        port: The server port.
+        username: The email account username.
+        password: The email account password.
+        download_folder: The folder to save attachments in.
+        options: A dictionary of options for the email client.
+        filter: A dictionary of filter criteria for reading messages.
 
     Returns:
-        List of Message objects
-
-    Example:
-        from python.helpers.email_client import read_messages
-        messages = await read_messages(
-            server="imap.gmail.com",
-            port=993,
-            username=secrets.get("EMAIL_USER"),
-            password=secrets.get("EMAIL_PASSWORD"),
-            download_folder="tmp/email/inbox",
-            filter={"unread": True, "sender": "*@company.com"}
-        )
+        A list of Message objects.
     """
     client = EmailClient(
         account_type=account_type,

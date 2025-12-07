@@ -24,11 +24,12 @@ export async function callJsonApi(endpoint, data) {
 }
 
 /**
- * Fetch wrapper for A0 APIs that ensures token exchange
- * Automatically adds CSRF token to request headers
- * @param {string} url - The URL to fetch
- * @param {Object} [request] - The fetch request options
- * @returns {Promise<Response>} The fetch response
+ * A wrapper for the native `fetch` API that automatically handles CSRF token
+ * acquisition and injection for API requests. It also includes a retry mechanism
+ * for CSRF token failures and handles redirects to the login page.
+ * @param {string} url - The URL to fetch.
+ * @param {Object} [request] - The fetch request options, same as the native `fetch`.
+ * @returns {Promise<Response>} The fetch response.
  */
 export async function fetchApi(url, request) {
   async function _wrap(retry) {
@@ -69,7 +70,7 @@ export async function fetchApi(url, request) {
   return response;
 }
 
-// csrf token stored locally
+/** @type {string | null} Caches the CSRF token locally to avoid repeated requests. */
 let csrfToken = null;
 
 /**

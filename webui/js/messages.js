@@ -1,3 +1,8 @@
+/**
+ * @file This module is responsible for rendering and managing all types of messages
+ * in the chat history. It handles creating new message elements, updating existing
+ * ones, and formatting content like markdown, code, and special tags.
+ */
 // message actions and components
 import { store as imageViewerStore } from "../components/modals/image-viewer/image-viewer-store.js";
 import { marked } from "../vendor/marked/marked.esm.js";
@@ -11,6 +16,19 @@ let messageGroup = null;
 
 // Simplified implementation - no complex interactions needed
 
+/**
+ * Creates or updates a message in the chat history.
+ * This is the main entry point for adding any type of message to the UI.
+ * It determines if the message is new or an update and calls the appropriate
+ * handler to render it. It also handles grouping messages visually.
+ * @param {string} id - The unique ID for the message.
+ * @param {string} type - The type of message (e.g., 'user', 'agent', 'error').
+ * @param {string} heading - The heading or title for the message.
+ * @param {string} content - The main content of the message.
+ * @param {boolean} temp - Whether the message is temporary.
+ * @param {Object | null} [kvps=null] - Key-value pairs to display in the message.
+ * @returns {HTMLElement} The message container element.
+ */
 export function setMessage(id, type, heading, content, temp, kvps = null) {
   // Search for the existing message container by id
   let messageContainer = document.getElementById(`message-${id}`);
@@ -77,6 +95,11 @@ export function setMessage(id, type, heading, content, temp, kvps = null) {
 
 // Legacy copy button functions removed - now using action buttons component
 
+/**
+ * Returns the appropriate drawing function for a given message type.
+ * @param {string} type - The message type.
+ * @returns {Function} The function used to draw the message.
+ */
 export function getHandler(type) {
   switch (type) {
     case "user":
@@ -108,7 +131,25 @@ export function getHandler(type) {
   }
 }
 
-// draw a message with a specific type
+/**
+ * The core drawing function that handles the rendering of most message types.
+ * It's a generic function that takes numerous parameters to customize the
+ * appearance and content of a message.
+ * @param {HTMLElement} messageContainer - The top-level container for the message.
+ * @param {string} heading - The message heading.
+ * @param {string} content - The main message content.
+ * @param {boolean} temp - Whether the message is temporary.
+ * @param {boolean} followUp - Whether this message is a follow-up to the previous one.
+ * @param {string} [mainClass=""] - The main CSS class for the message div.
+ * @param {Object | null} [kvps=null] - Key-value pairs.
+ * @param {string[]} [messageClasses=[]] - Additional classes for the message div.
+ * @param {string[]} [contentClasses=[]] - Additional classes for the content div.
+ * @param {boolean} [latex=false] - Whether to render LaTeX.
+ * @param {boolean} [markdown=false] - Whether to render markdown.
+ * @param {boolean} [resizeBtns=true] - Whether to show resize buttons.
+ * @returns {HTMLElement} The main message div.
+ * @private
+ */
 export function _drawMessage(
   messageContainer,
   heading,
@@ -265,6 +306,12 @@ export function _drawMessage(
   return messageDiv;
 }
 
+/**
+ * Adds `target="_blank"` and `rel="noopener noreferrer"` to all links in an HTML
+ * string to ensure they open in a new tab securely.
+ * @param {string} str - The HTML string to process.
+ * @returns {string} The processed HTML string with updated links.
+ */
 export function addBlankTargetsToLinks(str) {
   const doc = new DOMParser().parseFromString(str, "text/html");
 
@@ -290,6 +337,16 @@ export function addBlankTargetsToLinks(str) {
   return doc.body.innerHTML;
 }
 
+/**
+ * Renders a default message type.
+ * @param {HTMLElement} messageContainer - The message's container element.
+ * @param {string} id - The message ID.
+ * @param {string} type - The message type.
+ * @param {string} heading - The message heading.
+ * @param {string} content - The message content.
+ * @param {boolean} temp - Whether the message is temporary.
+ * @param {Object|null} [kvps=null] - Key-value pairs.
+ */
 export function drawMessageDefault(
   messageContainer,
   id,
@@ -314,6 +371,16 @@ export function drawMessageDefault(
   );
 }
 
+/**
+ * Renders a message from the agent.
+ * @param {HTMLElement} messageContainer - The message's container element.
+ * @param {string} id - The message ID.
+ * @param {string} type - The message type.
+ * @param {string} heading - The message heading.
+ * @param {string} content - The message content.
+ * @param {boolean} temp - Whether the message is temporary.
+ * @param {Object|null} [kvps=null] - Key-value pairs.
+ */
 export function drawMessageAgent(
   messageContainer,
   id,
@@ -344,6 +411,16 @@ export function drawMessageAgent(
   );
 }
 
+/**
+ * Renders a final response message from the agent.
+ * @param {HTMLElement} messageContainer - The message's container element.
+ * @param {string} id - The message ID.
+ * @param {string} type - The message type.
+ * @param {string} heading - The message heading.
+ * @param {string} content - The message content.
+ * @param {boolean} temp - Whether the message is temporary.
+ * @param {Object|null} [kvps=null] - Key-value pairs.
+ */
 export function drawMessageResponse(
   messageContainer,
   id,
@@ -368,6 +445,16 @@ export function drawMessageResponse(
   );
 }
 
+/**
+ * Renders a message indicating agent delegation.
+ * @param {HTMLElement} messageContainer - The message's container element.
+ * @param {string} id - The message ID.
+ * @param {string} type - The message type.
+ * @param {string} heading - The message heading.
+ * @param {string} content - The message content.
+ * @param {boolean} temp - Whether the message is temporary.
+ * @param {Object|null} [kvps=null] - Key-value pairs.
+ */
 export function drawMessageDelegation(
   messageContainer,
   id,
@@ -392,6 +479,17 @@ export function drawMessageDelegation(
   );
 }
 
+/**
+ * Renders a message from the user.
+ * @param {HTMLElement} messageContainer - The message's container element.
+ * @param {string} id - The message ID.
+ * @param {string} type - The message type.
+ * @param {string} heading - The message heading.
+ * @param {string} content - The message content.
+ * @param {boolean} temp - Whether the message is temporary.
+ * @param {Object|null} [kvps=null] - Key-value pairs, may include attachments.
+ * @param {boolean} [latex=false] - Whether to render LaTeX.
+ */
 export function drawMessageUser(
   messageContainer,
   id,
@@ -502,6 +600,16 @@ export function drawMessageUser(
   // The messageDiv is already appended or updated, no need to append again
 }
 
+/**
+ * Renders a message showing a tool call.
+ * @param {HTMLElement} messageContainer - The message's container element.
+ * @param {string} id - The message ID.
+ * @param {string} type - The message type.
+ * @param {string} heading - The message heading.
+ * @param {string} content - The message content.
+ * @param {boolean} temp - Whether the message is temporary.
+ * @param {Object|null} [kvps=null] - Key-value pairs.
+ */
 export function drawMessageTool(
   messageContainer,
   id,
@@ -526,6 +634,16 @@ export function drawMessageTool(
   );
 }
 
+/**
+ * Renders a message showing code execution.
+ * @param {HTMLElement} messageContainer - The message's container element.
+ * @param {string} id - The message ID.
+ * @param {string} type - The message type.
+ * @param {string} heading - The message heading.
+ * @param {string} content - The message content.
+ * @param {boolean} temp - Whether the message is temporary.
+ * @param {Object|null} [kvps=null] - Key-value pairs.
+ */
 export function drawMessageCodeExe(
   messageContainer,
   id,
@@ -550,6 +668,16 @@ export function drawMessageCodeExe(
   );
 }
 
+/**
+ * Renders a message related to browser actions.
+ * @param {HTMLElement} messageContainer - The message's container element.
+ * @param {string} id - The message ID.
+ * @param {string} type - The message type.
+ * @param {string} heading - The message heading.
+ * @param {string} content - The message content.
+ * @param {boolean} temp - Whether the message is temporary.
+ * @param {Object|null} [kvps=null] - Key-value pairs.
+ */
 export function drawMessageBrowser(
   messageContainer,
   id,
@@ -574,6 +702,18 @@ export function drawMessageBrowser(
   );
 }
 
+/**
+ * A helper for drawing simple, centered message types like info, warning, and error.
+ * @param {string} mainClass - The main CSS class for the message.
+ * @param {HTMLElement} messageContainer - The message's container element.
+ * @param {string} id - The message ID.
+ * @param {string} type - The message type.
+ * @param {string} heading - The message heading.
+ * @param {string} content - The message content.
+ * @param {boolean} temp - Whether the message is temporary.
+ * @param {Object|null} [kvps=null] - Key-value pairs.
+ * @private
+ */
 export function drawMessageAgentPlain(
   mainClass,
   messageContainer,
@@ -600,6 +740,16 @@ export function drawMessageAgentPlain(
   messageContainer.classList.add("center-container");
 }
 
+/**
+ * Renders an informational message.
+ * @param {HTMLElement} messageContainer - The message's container element.
+ * @param {string} id - The message ID.
+ * @param {string} type - The message type.
+ * @param {string} heading - The message heading.
+ * @param {string} content - The message content.
+ * @param {boolean} temp - Whether the message is temporary.
+ * @param {Object|null} [kvps=null] - Key-value pairs.
+ */
 export function drawMessageInfo(
   messageContainer,
   id,
@@ -621,6 +771,16 @@ export function drawMessageInfo(
   );
 }
 
+/**
+ * Renders a utility message.
+ * @param {HTMLElement} messageContainer - The message's container element.
+ * @param {string} id - The message ID.
+ * @param {string} type - The message type.
+ * @param {string} heading - The message heading.
+ * @param {string} content - The message content.
+ * @param {boolean} temp - Whether the message is temporary.
+ * @param {Object|null} [kvps=null] - Key-value pairs.
+ */
 export function drawMessageUtil(
   messageContainer,
   id,
@@ -646,6 +806,16 @@ export function drawMessageUtil(
   messageContainer.classList.add("center-container");
 }
 
+/**
+ * Renders a warning message.
+ * @param {HTMLElement} messageContainer - The message's container element.
+ * @param {string} id - The message ID.
+ * @param {string} type - The message type.
+ * @param {string} heading - The message heading.
+ * @param {string} content - The message content.
+ * @param {boolean} temp - Whether the message is temporary.
+ * @param {Object|null} [kvps=null] - Key-value pairs.
+ */
 export function drawMessageWarning(
   messageContainer,
   id,
@@ -667,6 +837,16 @@ export function drawMessageWarning(
   );
 }
 
+/**
+ * Renders an error message.
+ * @param {HTMLElement} messageContainer - The message's container element.
+ * @param {string} id - The message ID.
+ * @param {string} type - The message type.
+ * @param {string} heading - The message heading.
+ * @param {string} content - The message content.
+ * @param {boolean} temp - Whether the message is temporary.
+ * @param {Object|null} [kvps=null] - Key-value pairs.
+ */
 export function drawMessageError(
   messageContainer,
   id,
@@ -688,6 +868,13 @@ export function drawMessageError(
   );
 }
 
+/**
+ * Renders a table of key-value pairs.
+ * @param {HTMLElement} container - The element to append the table to.
+ * @param {Object} kvps - The key-value data.
+ * @param {boolean} latex - Whether to render LaTeX in values.
+ * @private
+ */
 function drawKvps(container, kvps, latex) {
   if (kvps) {
     const table = document.createElement("table");
@@ -761,6 +948,14 @@ function drawKvps(container, kvps, latex) {
   }
 }
 
+/**
+ * Incrementally renders or updates a table of key-value pairs. This is more
+ * efficient than `drawKvps` for streaming updates.
+ * @param {HTMLElement} container - The element containing the table.
+ * @param {Object} kvps - The key-value data.
+ * @param {boolean} latex - Whether to render LaTeX in values.
+ * @private
+ */
 function drawKvpsIncremental(container, kvps, latex) {
   if (kvps) {
     // Find existing table or create new one
@@ -886,6 +1081,12 @@ function drawKvpsIncremental(container, kvps, latex) {
   }
 }
 
+/**
+ * Converts a string from snake_case or kebab-case to Title Case.
+ * @param {string} str - The input string.
+ * @returns {string} The converted string.
+ * @private
+ */
 function convertToTitleCase(str) {
   return str
     .replace(/_/g, " ") // Replace underscores with spaces
@@ -895,6 +1096,12 @@ function convertToTitleCase(str) {
     });
 }
 
+/**
+ * Converts custom `<image>` tags containing base64 data to standard `<img>` tags.
+ * @param {string} content - The string content to process.
+ * @returns {string} The processed string.
+ * @private
+ */
 function convertImageTags(content) {
   // Regular expression to match <image> tags and extract base64 content
   const imageTagRegex = /<image>(.*?)<\/image>/g;
@@ -910,6 +1117,13 @@ function convertImageTags(content) {
   return updatedContent;
 }
 
+/**
+ * A comprehensive content conversion function that escapes HTML, converts image tags,
+ * and turns file paths into links.
+ * @param {*} str - The input, which will be stringified if not already a string.
+ * @returns {string} The fully processed HTML string.
+ * @private
+ */
 function convertHTML(str) {
   if (typeof str !== "string") str = JSON.stringify(str, null, 2);
 
@@ -919,10 +1133,21 @@ function convertHTML(str) {
   return result;
 }
 
+/**
+ * Converts `img://` pseudo-protocols to actual image URLs.
+ * @param {string} str - The input string.
+ * @returns {string} The processed string.
+ * @private
+ */
 function convertImgFilePaths(str) {
   return str.replace(/img:\/\//g, "/image_get?path=");
 }
 
+/**
+ * Converts `icon://` pseudo-protocols to Material Symbols span tags.
+ * @param {string} str - The input string.
+ * @returns {string} The processed string with icon tags.
+ */
 export function convertIcons(str) {
   return str.replace(
     /icon:\/\/([a-zA-Z0-9_]+)/g,
@@ -930,6 +1155,12 @@ export function convertIcons(str) {
   );
 }
 
+/**
+ * Escapes special HTML characters in a string.
+ * @param {string} str - The input string.
+ * @returns {string} The escaped string.
+ * @private
+ */
 function escapeHTML(str) {
   const escapeChars = {
     "&": "&amp;",
@@ -941,6 +1172,13 @@ function escapeHTML(str) {
   return str.replace(/[&<>'"]/g, (char) => escapeChars[char]);
 }
 
+/**
+ * Converts absolute file paths in a string into clickable links.
+ * It intelligently avoids converting paths inside HTML tags.
+ * @param {string} str - The input string.
+ * @returns {string} The processed string with linked paths.
+ * @private
+ */
 function convertPathsToLinks(str) {
   function generateLinks(match) {
     const parts = match.split("/");
@@ -977,6 +1215,11 @@ function convertPathsToLinks(str) {
     .join("");
 }
 
+/**
+ * Wraps tables rendered from markdown in a div for better styling and overflow handling.
+ * @param {HTMLElement} element - The parent element containing the markdown-rendered content.
+ * @private
+ */
 function adjustMarkdownRender(element) {
   // find all tables in the element
   const elements = element.querySelectorAll("table");
@@ -990,6 +1233,11 @@ function adjustMarkdownRender(element) {
   });
 }
 
+/**
+ * A helper class to manage the scroll position of an element, allowing for
+ * auto-scrolling if the element was already scrolled to the bottom.
+ * @private
+ */
 class Scroller {
   constructor(element) {
     this.element = element;

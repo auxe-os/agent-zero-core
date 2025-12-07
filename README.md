@@ -104,6 +104,22 @@ Agent Zero now supports **Projects** – isolated workspaces with their own prom
 - **Research** - `"Gather and summarize five recent AI papers about CoT prompting"`
 
 
+## 🛠️ Technical Stack
+
+- **Backend:** Python, Flask
+- **Frontend:** HTML, CSS, JavaScript (with Alpine.js)
+- **Containerization:** Docker
+- **Default LLM Provider:** OpenRouter
+- **Default Local LLM:** Ollama
+
+## 📂 Project Structure
+
+- **`python/`**: Core Python source code for the agent, tools, and framework.
+- **`webui/`**: HTML, CSS, and JavaScript for the web interface.
+- **`prompts/`**: Default system prompts and message templates.
+- **`docs/`**: Detailed documentation for installation, development, and usage.
+- **`docker/`**: Docker-related files for building and running the application.
+
 
 # ⚙️ Installation
 

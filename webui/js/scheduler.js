@@ -59,6 +59,13 @@ import { store as projectsStore } from "/components/projects/projects-store.js"
 //     };
 // }
 
+/**
+ * @file This file defines an Alpine.js component for managing scheduled tasks.
+ * It provides a user interface for listing, creating, editing, and deleting
+ * scheduled, ad-hoc, and planned tasks. It includes features like polling for
+ * updates, filtering, sorting, and detailed task views.
+ */
+
 // Add this near the top of the scheduler.js file, outside of any function
 const showToast = function(message, type = 'info') {
     // Use new frontend notification system
@@ -123,7 +130,10 @@ const fullComponentImplementation = function() {
         filteredTasks: [],
         hasNoTasks: true, // Add explicit reactive property
 
-        // Initialize the component
+        /**
+         * Initializes the scheduler component.
+         * Sets up initial state, starts polling for tasks, and registers event listeners.
+         */
         init() {
             // Initialize component data
             this.tasks = [];
@@ -226,7 +236,9 @@ const fullComponentImplementation = function() {
             };
         },
 
-        // Start polling for task updates
+        /**
+         * Starts the periodic polling to fetch task updates from the server.
+         */
         startPolling() {
             // Don't start if already polling
             if (this.pollingInterval) {
@@ -246,7 +258,9 @@ const fullComponentImplementation = function() {
             }, 2000); // Poll every 2 seconds as requested
         },
 
-        // Stop polling when tab is inactive
+        /**
+         * Stops the periodic polling for task updates.
+         */
         stopPolling() {
             console.log('Stopping task polling');
             this.pollingActive = false;
@@ -257,7 +271,10 @@ const fullComponentImplementation = function() {
             }
         },
 
-        // Fetch tasks from API
+        /**
+         * Fetches the list of tasks from the API and updates the component's state.
+         * It handles loading states and errors.
+         */
         async fetchTasks() {
             // Don't fetch if polling is inactive (prevents race conditions)
             if (!this.pollingActive && this.pollingInterval) {
@@ -338,7 +355,10 @@ const fullComponentImplementation = function() {
             }
         },
 
-        // Change sort field/direction
+        /**
+         * Changes the sorting criteria for the task list.
+         * @param {string} field - The field to sort by (e.g., 'name', 'createdAt').
+         */
         changeSort(field) {
             if (this.sortField === field) {
                 // Toggle direction if already sorting by this field
@@ -350,7 +370,10 @@ const fullComponentImplementation = function() {
             }
         },
 
-        // Toggle expanded task row
+        /**
+         * Toggles the expanded view of a task's details in the list.
+         * @param {string} taskId - The UUID of the task to expand or collapse.
+         */
         toggleTaskExpand(taskId) {
             if (this.expandedTaskId === taskId) {
                 this.expandedTaskId = null;
@@ -359,7 +382,10 @@ const fullComponentImplementation = function() {
             }
         },
 
-        // Show task detail view
+        /**
+         * Switches to the detailed view for a specific task.
+         * @param {string} taskId - The UUID of the task to show.
+         */
         showTaskDetail(taskId) {
             const task = this.tasks.find(t => t.uuid === taskId);
             if (!task) {
@@ -378,19 +404,29 @@ const fullComponentImplementation = function() {
             this.viewMode = 'detail';
         },
 
-        // Close detail view and return to list
+        /**
+         * Closes the detailed task view and returns to the list view.
+         */
         closeTaskDetail() {
             this.selectedTaskForDetail = null;
             this.viewMode = 'list';
         },
 
-        // Format date for display
+        /**
+         * Formats a date string for display in the user's local timezone.
+         * @param {string} dateString - The ISO date string to format.
+         * @returns {string} The formatted date string.
+         */
         formatDate(dateString) {
             if (!dateString) return 'Never';
             return formatDateTime(dateString, 'full');
         },
 
-        // Format plan for display
+        /**
+         * Formats the plan of a planned task for a concise display.
+         * @param {object} task - The task object.
+         * @returns {string} A summary of the task's plan.
+         */
         formatPlan(task) {
             if (!task || !task.plan) return 'No plan';
 
@@ -421,7 +457,11 @@ const fullComponentImplementation = function() {
             return `Next: ${nextRun}\nTodo: ${todoCount}\nIn Progress: ${inProgress}\nDone: ${doneCount}`;
         },
 
-        // Format schedule for display
+        /**
+         * Formats the schedule of a scheduled task for display.
+         * @param {object} task - The task object.
+         * @returns {string} The cron-like schedule string.
+         */
         formatSchedule(task) {
             if (!task.schedule) return 'None';
 
@@ -436,7 +476,11 @@ const fullComponentImplementation = function() {
             return schedule;
         },
 
-        // Get CSS class for state badge
+        /**
+         * Returns the appropriate CSS class for a task's state badge.
+         * @param {string} state - The task state (e.g., 'idle', 'running').
+         * @returns {string} The CSS class name.
+         */
         getStateBadgeClass(state) {
             switch (state) {
                 case 'idle': return 'scheduler-status-idle';
@@ -447,6 +491,10 @@ const fullComponentImplementation = function() {
             }
         },
 
+        /**
+         * Derives the active project from the currently selected chat context.
+         * @returns {object|null} The active project object or null.
+         */
         deriveActiveProject() {
             const selected = chatsStore?.selectedContext || null;
             if (!selected || !selected.project) {
@@ -461,6 +509,11 @@ const fullComponentImplementation = function() {
             };
         },
 
+        /**
+         * Formats a project object for display.
+         * @param {object} project - The project object.
+         * @returns {string} The project's display name.
+         */
         formatProjectName(project) {
             if (!project) {
                 return 'No Project';
@@ -469,10 +522,18 @@ const fullComponentImplementation = function() {
             return title || 'No Project';
         },
 
+        /**
+         * Creates a label for a project.
+         * @param {object} project - The project object.
+         * @returns {string} The formatted project label.
+         */
         formatProjectLabel(project) {
             return `Project: ${this.formatProjectName(project)}`;
         },
 
+        /**
+         * Refreshes the list of available projects for the project selection dropdown.
+         */
         async refreshProjectOptions() {
             try {
                 if (!Array.isArray(projectsStore.projectList) || !projectsStore.projectList.length) {
@@ -492,6 +553,10 @@ const fullComponentImplementation = function() {
             }));
         },
 
+        /**
+         * Handles the selection of a project from the dropdown.
+         * @param {string} slug - The slug of the selected project.
+         */
         onProjectSelect(slug) {
             this.selectedProjectSlug = slug || '';
             if (!slug) {
@@ -511,6 +576,11 @@ const fullComponentImplementation = function() {
             }
         },
 
+        /**
+         * Extracts project information from a task object.
+         * @param {object} task - The task object.
+         * @returns {object|null} The project object associated with the task.
+         */
         extractTaskProject(task) {
             if (!task) {
                 return null;
@@ -532,11 +602,18 @@ const fullComponentImplementation = function() {
             };
         },
 
+        /**
+         * Formats the project name for a given task.
+         * @param {object} task - The task object.
+         * @returns {string} The formatted project name.
+         */
         formatTaskProject(task) {
             return this.formatProjectName(this.extractTaskProject(task));
         },
 
-        // Create a new task
+        /**
+         * Initializes the form for creating a new task.
+         */
         async startCreateTask() {
             this.isCreating = true;
             this.isEditing = false;
@@ -580,7 +657,10 @@ const fullComponentImplementation = function() {
             });
         },
 
-        // Edit an existing task
+        /**
+         * Initializes the form for editing an existing task.
+         * @param {string} taskId - The UUID of the task to edit.
+         */
         async startEditTask(taskId) {
             const task = this.tasks.find(t => t.uuid === taskId);
             if (!task) {
@@ -717,7 +797,9 @@ const fullComponentImplementation = function() {
             });
         },
 
-        // Cancel editing
+        /**
+         * Cancels the create or edit operation and resets the form.
+         */
         cancelEdit() {
             // Clean up Flatpickr instances
             const destroyFlatpickr = (inputId) => {
@@ -777,7 +859,9 @@ const fullComponentImplementation = function() {
             document.querySelector('[x-data="schedulerSettings"]')?.removeAttribute('data-editing-state');
         },
 
-        // Save task (create new or update existing)
+        /**
+         * Saves a new or existing task by sending the form data to the API.
+         */
         async saveTask() {
             // Validate task data
             if (!this.editingTask.name.trim() || !this.editingTask.prompt.trim()) {
@@ -1009,7 +1093,10 @@ const fullComponentImplementation = function() {
             }
         },
 
-        // Run a task
+        /**
+         * Triggers an immediate run of a specific task.
+         * @param {string} taskId - The UUID of the task to run.
+         */
         async runTask(taskId) {
             try {
                 const response = await fetchApi('/scheduler_task_run', {
@@ -1041,7 +1128,10 @@ const fullComponentImplementation = function() {
             }
         },
 
-        // Reset a task's state
+        /**
+         * Resets a task's state to 'idle'.
+         * @param {string} taskId - The UUID of the task to reset.
+         */
         async resetTaskState(taskId) {
             try {
                 const task = this.tasks.find(t => t.uuid === taskId);
@@ -1088,7 +1178,10 @@ const fullComponentImplementation = function() {
             }
         },
 
-        // Delete a task
+        /**
+         * Deletes a task after user confirmation.
+         * @param {string} taskId - The UUID of the task to delete.
+         */
         async deleteTask(taskId) {
             // Confirm deletion
             if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
@@ -1134,7 +1227,10 @@ const fullComponentImplementation = function() {
             }
         },
 
-        // Initialize datetime input with default value (30 minutes from now)
+        /**
+         * Initializes a datetime input with a default value of 30 minutes from now.
+         * @param {Event} event - The input event.
+         */
         initDateTimeInput(event) {
             if (!event.target.value) {
                 const now = new Date();
@@ -1156,7 +1252,10 @@ const fullComponentImplementation = function() {
             }
         },
 
-        // Generate a random token for ad-hoc tasks
+        /**
+         * Generates a random token for ad-hoc tasks.
+         * @returns {string} A 16-character random token.
+         */
         generateRandomToken() {
             const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
             let token = '';
@@ -1166,7 +1265,10 @@ const fullComponentImplementation = function() {
             return token;
         },
 
-        // Getter for filtered tasks
+        /**
+         * A computed property that returns the filtered and sorted list of tasks.
+         * @returns {Array} The list of tasks to be displayed.
+         */
         get filteredTasks() {
             // Make sure we have tasks to filter
             if (!Array.isArray(this.tasks)) {
@@ -1196,7 +1298,11 @@ const fullComponentImplementation = function() {
             return this.sortTasks(filtered);
         },
 
-        // Sort the tasks based on sort field and direction
+        /**
+         * Sorts an array of tasks based on the current sort settings.
+         * @param {Array} tasks - The array of tasks to sort.
+         * @returns {Array} The sorted array of tasks.
+         */
         sortTasks(tasks) {
             if (!Array.isArray(tasks) || tasks.length === 0) {
                 return tasks;
@@ -1232,7 +1338,10 @@ const fullComponentImplementation = function() {
             });
         },
 
-        // Computed property for attachments text representation
+        /**
+         * A computed property that gets the attachments as a newline-separated string.
+         * @returns {string} The attachments as a string.
+         */
         get attachmentsText() {
             // Ensure we always have an array to work with
             const attachments = Array.isArray(this.editingTask.attachments)
@@ -1243,7 +1352,10 @@ const fullComponentImplementation = function() {
             return attachments.join('\n');
         },
 
-        // Setter for attachments text - preserves empty lines during editing
+        /**
+         * A computed property that sets the attachments from a newline-separated string.
+         * @param {string} value - The newline-separated string of attachments.
+         */
         set attachmentsText(value) {
             if (typeof value === 'string') {
                 // Just split by newlines without filtering to preserve editing experience
@@ -1254,7 +1366,10 @@ const fullComponentImplementation = function() {
             }
         },
 
-        // Debug method to test filtering logic
+        /**
+         * A debug method to test and log the current filtering logic.
+         * @private
+         */
         testFiltering() {
             console.group('SchedulerSettings Debug: Filter Test');
             console.log('Current Filter Settings:');
@@ -1300,7 +1415,10 @@ const fullComponentImplementation = function() {
             console.groupEnd();
         },
 
-        // New comprehensive debug method
+        /**
+         * A comprehensive debug method to log the component's state and task data.
+         * @private
+         */
         debugTasks() {
             console.group('SchedulerSettings Comprehensive Debug');
 
@@ -1412,12 +1530,9 @@ const fullComponentImplementation = function() {
             console.groupEnd();
         },
 
-        // Initialize Flatpickr datetime pickers for both create and edit forms
         /**
-         * Initialize Flatpickr date/time pickers for scheduler forms
-         *
-         * @param {string} mode - Which pickers to initialize: 'all', 'create', or 'edit'
-         * @returns {void}
+         * Initializes Flatpickr date/time pickers for the task creation and editing forms.
+         * @param {string} [mode='all'] - Which pickers to initialize: 'all', 'create', or 'edit'.
          */
         initFlatpickr(mode = 'all') {
             const initPicker = (inputId, refName, wrapperClass, options = {}) => {
@@ -1531,7 +1646,10 @@ const fullComponentImplementation = function() {
             }
         },
 
-        // Update tasks UI
+        /**
+         * Updates the visibility of the task list and the "no tasks" message
+         * based on the current filter results.
+         */
         updateTasksUI() {
             // First update filteredTasks if that method exists
             if (typeof this.updateFilteredTasks === 'function') {

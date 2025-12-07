@@ -18,14 +18,40 @@ import mimetypes
 
 
 class VariablesPlugin(ABC):
+    """Abstract base class for a variables plugin."""
     @abstractmethod
     def get_variables(self, file: str, backup_dirs: list[str] | None = None, **kwargs) -> dict[str, Any]:  # type: ignore
+        """Gets the variables for a given file.
+
+        Args:
+            file: The path to the file.
+            backup_dirs: A list of backup directories to search for the plugin.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            A dictionary of variables.
+        """
         pass
 
 
 def load_plugin_variables(
     file: str, backup_dirs: list[str] | None = None, **kwargs
 ) -> dict[str, Any]:
+    """Loads variables from a plugin file.
+
+    This function searches for a Python file with the same name as the given
+    Markdown file and a `.py` extension. If found, it loads the variables
+    from the plugin.
+
+    Args:
+        file: The path to the Markdown file.
+        backup_dirs: A list of backup directories to search for the plugin.
+        **kwargs: Additional keyword arguments.
+
+    Returns:
+        A dictionary of variables, or an empty dictionary if no plugin is
+        found.
+    """
     if not file.endswith(".md"):
         return {}
 
@@ -83,6 +109,17 @@ from python.helpers.strings import sanitize_string
 def parse_file(
     _filename: str, _directories: list[str] | None = None, _encoding="utf-8", **kwargs
 ):
+    """Parses a file, replacing placeholders and processing includes.
+
+    Args:
+        _filename: The name of the file to parse.
+        _directories: A list of directories to search for the file.
+        _encoding: The encoding of the file.
+        **kwargs: Keyword arguments to use as placeholder values.
+
+    Returns:
+        The parsed file content, which can be a string or a dictionary.
+    """
     if _directories is None:
         _directories = []
 
@@ -118,6 +155,17 @@ def parse_file(
 def read_prompt_file(
     _file: str, _directories: list[str] | None = None, _encoding="utf-8", **kwargs
 ):
+    """Reads a prompt file, replacing placeholders and processing includes.
+
+    Args:
+        _file: The name of the file to read.
+        _directories: A list of directories to search for the file.
+        _encoding: The encoding of the file.
+        **kwargs: Keyword arguments to use as placeholder values.
+
+    Returns:
+        The content of the prompt file as a string.
+    """
     if _directories is None:
         _directories = []
 
@@ -153,6 +201,15 @@ def read_prompt_file(
 
 
 def read_file(relative_path: str, encoding="utf-8"):
+    """Reads a file as a string.
+
+    Args:
+        relative_path: The relative path to the file.
+        encoding: The encoding of the file.
+
+    Returns:
+        The content of the file as a string.
+    """
     # Try to get the absolute path for the file from the original directory or backup directories
     absolute_path = get_abs_path(relative_path)
 
@@ -162,6 +219,14 @@ def read_file(relative_path: str, encoding="utf-8"):
 
 
 def read_file_bin(relative_path: str):
+    """Reads a file as binary data.
+
+    Args:
+        relative_path: The relative path to the file.
+
+    Returns:
+        The content of the file as bytes.
+    """
     # Try to get the absolute path for the file from the original directory or backup directories
     absolute_path = get_abs_path(relative_path)
 
@@ -171,6 +236,14 @@ def read_file_bin(relative_path: str):
 
 
 def read_file_base64(relative_path):
+    """Reads a file and encodes it as a base64 string.
+
+    Args:
+        relative_path: The relative path to the file.
+
+    Returns:
+        The base64-encoded content of the file.
+    """
     # get absolute path
     absolute_path = get_abs_path(relative_path)
 
@@ -180,6 +253,15 @@ def read_file_base64(relative_path):
 
 
 def replace_placeholders_text(_content: str, **kwargs):
+    """Replaces placeholders in a string with the given values.
+
+    Args:
+        _content: The string to process.
+        **kwargs: Keyword arguments to use as placeholder values.
+
+    Returns:
+        The processed string.
+    """
     # Replace placeholders with values from kwargs
     for key, value in kwargs.items():
         placeholder = "{{" + key + "}}"
@@ -189,6 +271,15 @@ def replace_placeholders_text(_content: str, **kwargs):
 
 
 def replace_placeholders_json(_content: str, **kwargs):
+    """Replaces placeholders in a JSON string with the given values.
+
+    Args:
+        _content: The JSON string to process.
+        **kwargs: Keyword arguments to use as placeholder values.
+
+    Returns:
+        The processed JSON string.
+    """
     # Replace placeholders with values from kwargs
     for key, value in kwargs.items():
         placeholder = "{{" + key + "}}"
@@ -198,6 +289,15 @@ def replace_placeholders_json(_content: str, **kwargs):
 
 
 def replace_placeholders_dict(_content: dict, **kwargs):
+    """Recursively replaces placeholders in a dictionary.
+
+    Args:
+        _content: The dictionary to process.
+        **kwargs: Keyword arguments to use as placeholder values.
+
+    Returns:
+        The processed dictionary.
+    """
     def replace_value(value):
         if isinstance(value, str):
             placeholders = re.findall(r"{{(\w+)}}", value)
@@ -227,6 +327,16 @@ def replace_placeholders_dict(_content: dict, **kwargs):
 
 
 def process_includes(_content: str, _directories: list[str], **kwargs):
+    """Processes `{{ include 'path' }}` statements in a string.
+
+    Args:
+        _content: The string to process.
+        _directories: A list of directories to search for the included files.
+        **kwargs: Keyword arguments to pass to the included files.
+
+    Returns:
+        The processed string.
+    """
     # Regex to find {{ include 'path' }} or {{include'path'}}
     include_pattern = re.compile(r"{{\s*include\s*['\"](.*?)['\"]\s*}}")
 
@@ -247,9 +357,17 @@ def process_includes(_content: str, _directories: list[str], **kwargs):
 
 
 def find_file_in_dirs(_filename: str, _directories: list[str]):
-    """
-    This function searches for a filename in a list of directories in order.
-    Returns the absolute path of the first found file.
+    """Searches for a file in a list of directories.
+
+    Args:
+        _filename: The name of the file to search for.
+        _directories: A list of directories to search in.
+
+    Returns:
+        The absolute path of the first found file.
+
+    Raises:
+        FileNotFoundError: If the file is not found in any of the directories.
     """
     # Loop through the directories in order
     for directory in _directories:
@@ -265,6 +383,15 @@ def find_file_in_dirs(_filename: str, _directories: list[str]):
 
 
 def get_unique_filenames_in_dirs(dir_paths: list[str], pattern: str = "*"):
+    """Gets a list of unique filenames from a list of directories.
+
+    Args:
+        dir_paths: A list of directory paths.
+        pattern: A glob pattern to filter the files.
+
+    Returns:
+        A sorted list of absolute paths to the unique files.
+    """
     # returns absolute paths for unique filenames, priority by order in dir_paths
     seen = set()
     result = []
@@ -281,6 +408,14 @@ def get_unique_filenames_in_dirs(dir_paths: list[str], pattern: str = "*"):
 
 
 def remove_code_fences(text):
+    """Removes code fences from a string.
+
+    Args:
+        text: The string to process.
+
+    Returns:
+        The processed string.
+    """
     # Pattern to match code fences with optional language specifier
     pattern = r"(```|~~~)(.*?\n)(.*?)(\1)"
 
@@ -295,6 +430,17 @@ def remove_code_fences(text):
 
 
 def is_full_json_template(text):
+    """Checks if a string is a full JSON template.
+
+    A full JSON template is a string that is entirely enclosed in JSON
+    code fences.
+
+    Args:
+        text: The string to check.
+
+    Returns:
+        True if the string is a full JSON template, False otherwise.
+    """
     # Pattern to match the entire text enclosed in ```json or ~~~json fences
     pattern = r"^\s*(```|~~~)\s*json\s*\n(.*?)\n\1\s*$"
     # Use re.DOTALL to make '.' match newlines
@@ -303,6 +449,13 @@ def is_full_json_template(text):
 
 
 def write_file(relative_path: str, content: str, encoding: str = "utf-8"):
+    """Writes a string to a file.
+
+    Args:
+        relative_path: The relative path to the file.
+        content: The string to write.
+        encoding: The encoding of the file.
+    """
     abs_path = get_abs_path(relative_path)
     os.makedirs(os.path.dirname(abs_path), exist_ok=True)
     content = sanitize_string(content, encoding)
@@ -311,6 +464,12 @@ def write_file(relative_path: str, content: str, encoding: str = "utf-8"):
 
 
 def write_file_bin(relative_path: str, content: bytes):
+    """Writes binary data to a file.
+
+    Args:
+        relative_path: The relative path to the file.
+        content: The binary data to write.
+    """
     abs_path = get_abs_path(relative_path)
     os.makedirs(os.path.dirname(abs_path), exist_ok=True)
     with open(abs_path, "wb") as f:
@@ -318,6 +477,12 @@ def write_file_bin(relative_path: str, content: bytes):
 
 
 def write_file_base64(relative_path: str, content: str):
+    """Decodes a base64 string and writes it to a file.
+
+    Args:
+        relative_path: The relative path to the file.
+        content: The base64-encoded string.
+    """
     # decode base64 string to bytes
     data = base64.b64decode(content)
     abs_path = get_abs_path(relative_path)
@@ -327,6 +492,14 @@ def write_file_base64(relative_path: str, content: str):
 
 
 def delete_dir(relative_path: str):
+    """Safely deletes a directory.
+
+    This function will attempt to delete the directory and all its contents.
+    It will not raise an error if the directory does not exist.
+
+    Args:
+        relative_path: The relative path to the directory.
+    """
     # ensure deletion of directory without propagating errors
     abs_path = get_abs_path(relative_path)
     if os.path.exists(abs_path):
@@ -353,6 +526,12 @@ def delete_dir(relative_path: str):
 
 
 def move_dir(old_path: str, new_path: str):
+    """Moves a directory.
+
+    Args:
+        old_path: The path to the directory to move.
+        new_path: The new path for the directory.
+    """
     # rename/move the directory from old_path to new_path (both relative)
     abs_old = get_abs_path(old_path)
     abs_new = get_abs_path(new_path)
@@ -366,6 +545,19 @@ def move_dir(old_path: str, new_path: str):
 
 # move dir safely, remove with number if needed
 def move_dir_safe(src, dst, rename_format="{name}_{number}"):
+    """Safely moves a directory.
+
+    If the destination directory already exists, it will be renamed with a
+    numbered suffix.
+
+    Args:
+        src: The path to the directory to move.
+        dst: The destination path.
+        rename_format: The format for the renamed directory.
+
+    Returns:
+        The final destination path.
+    """
     base_dst = dst
     i = 2
     while exists(dst):
@@ -377,6 +569,17 @@ def move_dir_safe(src, dst, rename_format="{name}_{number}"):
 
 # create dir safely, add number if needed
 def create_dir_safe(dst, rename_format="{name}_{number}"):
+    """Safely creates a directory.
+
+    If the directory already exists, it will be created with a numbered suffix.
+
+    Args:
+        dst: The path to the directory to create.
+        rename_format: The format for the renamed directory.
+
+    Returns:
+        The final path of the created directory.
+    """
     base_dst = dst
     i = 2
     while exists(dst):
@@ -387,11 +590,25 @@ def create_dir_safe(dst, rename_format="{name}_{number}"):
 
 
 def create_dir(relative_path: str):
+    """Creates a directory.
+
+    Args:
+        relative_path: The relative path to the directory.
+    """
     abs_path = get_abs_path(relative_path)
     os.makedirs(abs_path, exist_ok=True)
 
 
 def list_files(relative_path: str, filter: str = "*"):
+    """Lists the files in a directory.
+
+    Args:
+        relative_path: The relative path to the directory.
+        filter: A glob pattern to filter the files.
+
+    Returns:
+        A list of filenames.
+    """
     abs_path = get_abs_path(relative_path)
     if not os.path.exists(abs_path):
         return []
@@ -399,22 +616,40 @@ def list_files(relative_path: str, filter: str = "*"):
 
 
 def make_dirs(relative_path: str):
+    """Creates the parent directories for a file path.
+
+    Args:
+        relative_path: The relative path to the file.
+    """
     abs_path = get_abs_path(relative_path)
     os.makedirs(os.path.dirname(abs_path), exist_ok=True)
 
 
-def get_abs_path(*relative_paths):
-    "Convert relative paths to absolute paths based on the base directory."
-    return os.path.join(get_base_dir(), *relative_paths)
-
 
 def deabsolute_path(path: str):
-    "Convert absolute paths to relative paths based on the base directory."
+    """Converts an absolute path to a relative path.
+
+    Args:
+        path: The absolute path to convert.
+
+    Returns:
+        The relative path.
+    """
     return os.path.relpath(path, get_base_dir())
 
 
 def fix_dev_path(path: str):
-    "On dev environment, convert /a0/... paths to local absolute paths"
+    """Fixes a path for the development environment.
+
+    In the development environment, this function converts `/a0/...` paths to
+    local absolute paths.
+
+    Args:
+        path: The path to fix.
+
+    Returns:
+        The fixed path.
+    """
     from python.helpers.runtime import is_development
 
     if is_development():
@@ -424,7 +659,14 @@ def fix_dev_path(path: str):
 
 
 def normalize_a0_path(path: str):
-    "Convert absolute paths into /a0/... paths"
+    """Normalizes a path to the `/a0/...` format.
+
+    Args:
+        path: The path to normalize.
+
+    Returns:
+        The normalized path.
+    """
     if is_in_base_dir(path):
         deabs = deabsolute_path(path)
         return "/a0/" + deabs
@@ -432,27 +674,65 @@ def normalize_a0_path(path: str):
 
 
 def exists(*relative_paths):
+    """Checks if a path exists.
+
+    Args:
+        *relative_paths: The relative path components.
+
+    Returns:
+        True if the path exists, False otherwise.
+    """
     path = get_abs_path(*relative_paths)
     return os.path.exists(path)
 
 
 def get_base_dir():
+    """Gets the base directory of the application.
+
+    Returns:
+        The absolute path to the base directory.
+    """
     # Get the base directory from the current file path
     base_dir = os.path.dirname(os.path.abspath(os.path.join(__file__, "../../")))
     return base_dir
 
 
 def basename(path: str, suffix: str | None = None):
+    """Gets the basename of a path.
+
+    Args:
+        path: The path.
+        suffix: An optional suffix to remove.
+
+    Returns:
+        The basename of the path.
+    """
     if suffix:
         return os.path.basename(path).removesuffix(suffix)
     return os.path.basename(path)
 
 
 def dirname(path: str):
+    """Gets the directory name of a path.
+
+    Args:
+        path: The path.
+
+    Returns:
+        The directory name.
+    """
     return os.path.dirname(path)
 
 
 def is_in_base_dir(path: str):
+    """Checks if a path is within the base directory.
+
+    Args:
+        path: The path to check.
+
+    Returns:
+        True if the path is in the base directory, False otherwise.
+    """
     # check if the given path is within the base directory
     base_dir = get_base_dir()
     # normalize paths to handle relative paths and symlinks
@@ -466,6 +746,16 @@ def get_subdirectories(
     include: str | list[str] = "*",
     exclude: str | list[str] | None = None,
 ):
+    """Gets a list of subdirectories in a directory.
+
+    Args:
+        relative_path: The relative path to the directory.
+        include: A glob pattern or list of patterns to include.
+        exclude: A glob pattern or list of patterns to exclude.
+
+    Returns:
+        A list of subdirectory names.
+    """
     abs_path = get_abs_path(relative_path)
     if not os.path.exists(abs_path):
         return []
@@ -483,6 +773,14 @@ def get_subdirectories(
 
 
 def zip_dir(dir_path: str):
+    """Zips a directory.
+
+    Args:
+        dir_path: The path to the directory to zip.
+
+    Returns:
+        The path to the created zip file.
+    """
     full_path = get_abs_path(dir_path)
     zip_file_path = tempfile.NamedTemporaryFile(suffix=".zip", delete=False).name
     base_name = os.path.basename(full_path)
@@ -496,6 +794,12 @@ def zip_dir(dir_path: str):
 
 
 def move_file(relative_path: str, new_path: str):
+    """Moves a file.
+
+    Args:
+        relative_path: The relative path to the file to move.
+        new_path: The new relative path for the file.
+    """
     abs_path = get_abs_path(relative_path)
     new_abs_path = get_abs_path(new_path)
     os.makedirs(os.path.dirname(new_abs_path), exist_ok=True)
@@ -503,6 +807,17 @@ def move_file(relative_path: str, new_path: str):
 
 
 def safe_file_name(filename: str) -> str:
+    """Sanitizes a filename.
+
+    This function replaces any character that is not alphanumeric, a dash, an
+    underscore, or a dot with an underscore.
+
+    Args:
+        filename: The filename to sanitize.
+
+    Returns:
+        The sanitized filename.
+    """
     # Replace any character that's not alphanumeric, dash, underscore, or dot with underscore
     return re.sub(r"[^a-zA-Z0-9-._]", "_", filename)
 
@@ -510,6 +825,15 @@ def safe_file_name(filename: str) -> str:
 def read_text_files_in_dir(
     dir_path: str, max_size: int = 1024 * 1024
 ) -> dict[str, str]:
+    """Reads all text files in a directory.
+
+    Args:
+        dir_path: The path to the directory.
+        max_size: The maximum size of a file to read.
+
+    Returns:
+        A dictionary mapping filenames to their content.
+    """
 
     abs_path = get_abs_path(dir_path)
     if not os.path.exists(abs_path):
@@ -532,6 +856,14 @@ def read_text_files_in_dir(
     return result
 
 def list_files_in_dir_recursively(relative_path: str) -> list[str]:
+    """Lists all files in a directory recursively.
+
+    Args:
+        relative_path: The relative path to the directory.
+
+    Returns:
+        A list of relative paths to the files.
+    """
     abs_path = get_abs_path(relative_path)
     if not os.path.exists(abs_path):
         return []

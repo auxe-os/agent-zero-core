@@ -1,7 +1,15 @@
 /**
- * Detects the input type: 'pointer' (e.g., mouse, supports hover) or 'touch' (e.g., finger, no reliable hover).
- * On hybrids, resolves based on first user interaction (mouse vs. touch).
- * @returns {Promise<string>} Resolves to 'pointer' or 'touch'.
+ * @file This file provides functionality to detect the user's primary input device type.
+ * It distinguishes between 'pointer' devices (like a mouse) and 'touch' devices.
+ * For hybrid devices, it determines the type based on the first interaction.
+ */
+
+/**
+ * Detects the primary input type ('pointer' or 'touch') for the current session.
+ * For devices that support both (hybrids), it resolves based on the first user
+ * interaction (e.g., a mouse move or a touch start). The result is cached for
+ * subsequent calls.
+ * @returns {Promise<string>} A promise that resolves to either 'pointer' or 'touch'.
  */
 // Module variable to store detected input type
 let detectedInputType;

@@ -16,8 +16,25 @@ DEFAULT_WAIT_TIMEOUT = 300
 
 
 class SchedulerTool(Tool):
+    """
+    A tool for managing scheduled, ad-hoc, and planned tasks. It provides
+    methods to create, list, run, delete, and wait for tasks.
+    """
 
     async def execute(self, **kwargs):
+        """
+        Main execution entry point for the SchedulerTool.
+
+        This method dispatches the call to the appropriate handler based on the
+        `self.method` attribute, which is typically set from the tool name in the
+        prompt (e.g., "scheduler:list_tasks").
+
+        Args:
+            **kwargs: Arbitrary keyword arguments passed to the specific handler.
+
+        Returns:
+            A Response object from the called handler method.
+        """
         if self.method == "list_tasks":
             return await self.list_tasks(**kwargs)
         elif self.method == "find_task_by_name":
@@ -40,6 +57,13 @@ class SchedulerTool(Tool):
             return Response(message=f"Unknown method '{self.name}:{self.method}'", break_loop=False)
 
     def _resolve_project_metadata(self) -> tuple[str | None, str | None]:
+        """
+        Resolves the project slug and color from the current agent context.
+
+        Returns:
+            A tuple containing the project slug and project color, or (None, None)
+            if they cannot be resolved.
+        """
         context = self.agent.context
         if not context:
             return (None, None)
@@ -54,6 +78,16 @@ class SchedulerTool(Tool):
         return project_slug, color
 
     async def list_tasks(self, **kwargs) -> Response:
+        """
+        Lists tasks, optionally filtering by state, type, and next run time.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments. Can include 'state', 'type',
+                      'next_run_within', and 'next_run_after' for filtering.
+
+        Returns:
+            A Response object containing a JSON-formatted list of tasks.
+        """
         state_filter: list[str] | None = kwargs.get("state", None)
         type_filter: list[str] | None = kwargs.get("type", None)
         next_run_within_filter: int | None = kwargs.get("next_run_within", None)
@@ -75,6 +109,16 @@ class SchedulerTool(Tool):
         return Response(message=json.dumps(filtered_tasks, indent=4), break_loop=False)
 
     async def find_task_by_name(self, **kwargs) -> Response:
+        """
+        Finds tasks by their name.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments. Must include 'name'.
+
+        Returns:
+            A Response object containing a JSON-formatted list of matching tasks,
+            or a "not found" message.
+        """
         name: str = kwargs.get("name", "")
         if not name:
             return Response(message="Task name is required", break_loop=False)
@@ -84,6 +128,16 @@ class SchedulerTool(Tool):
         return Response(message=json.dumps([serialize_task(task) for task in tasks], indent=4), break_loop=False)
 
     async def show_task(self, **kwargs) -> Response:
+        """
+        Shows the details of a specific task by its UUID.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments. Must include 'uuid'.
+
+        Returns:
+            A Response object containing the JSON-formatted task details,
+            or a "not found" message.
+        """
         task_uuid: str = kwargs.get("uuid", "")
         if not task_uuid:
             return Response(message="Task UUID is required", break_loop=False)
@@ -93,6 +147,17 @@ class SchedulerTool(Tool):
         return Response(message=json.dumps(serialize_task(task), indent=4), break_loop=False)
 
     async def run_task(self, **kwargs) -> Response:
+        """
+        Runs a task by its UUID.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments. Must include 'uuid'. Can also
+                      include 'context' to provide additional context to the task.
+
+        Returns:
+            A Response object with a confirmation message. It may also break the
+            current agent loop if the task runs in the same context.
+        """
         task_uuid: str = kwargs.get("uuid", "")
         if not task_uuid:
             return Response(message="Task UUID is required", break_loop=False)
@@ -118,6 +183,18 @@ class SchedulerTool(Tool):
         return Response(message=f"Task started: {task_uuid}", break_loop=break_loop)
 
     async def delete_task(self, **kwargs) -> Response:
+        """
+        Deletes a task by its UUID.
+
+        If the task is running, it will be stopped. If it has a dedicated context,
+        that context will also be deleted.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments. Must include 'uuid'.
+
+        Returns:
+            A Response object with a confirmation or failure message.
+        """
         task_uuid: str = kwargs.get("uuid", "")
         if not task_uuid:
             return Response(message="Task UUID is required", break_loop=False)
@@ -147,6 +224,17 @@ class SchedulerTool(Tool):
             return Response(message=f"Task failed to delete: {task_uuid}", break_loop=False)
 
     async def create_scheduled_task(self, **kwargs) -> Response:
+        """
+        Creates a new scheduled task.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments. Must include 'name', 'prompt',
+                      and 'schedule'. Can also include 'system_prompt',
+                      'attachments', and 'dedicated_context'.
+
+        Returns:
+            A Response object with a confirmation message and the new task's UUID.
+        """
         # "name": "XXX",
         #   "system_prompt": "You are a software developer",
         #   "prompt": "Send the user an email with a greeting using python and smtp. The user's address is: xxx@yyy.zzz",
@@ -194,6 +282,17 @@ class SchedulerTool(Tool):
         return Response(message=f"Scheduled task '{name}' created: {task.uuid}", break_loop=False)
 
     async def create_adhoc_task(self, **kwargs) -> Response:
+        """
+        Creates a new ad-hoc (on-demand) task.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments. Must include 'name' and
+                      'prompt'. Can also include 'system_prompt', 'attachments',
+                      and 'dedicated_context'.
+
+        Returns:
+            A Response object with a confirmation message and the new task's UUID.
+        """
         name: str = kwargs.get("name", "")
         system_prompt: str = kwargs.get("system_prompt", "")
         prompt: str = kwargs.get("prompt", "")
@@ -217,6 +316,18 @@ class SchedulerTool(Tool):
         return Response(message=f"Adhoc task '{name}' created: {task.uuid}", break_loop=False)
 
     async def create_planned_task(self, **kwargs) -> Response:
+        """
+        Creates a new planned task with a series of scheduled run times.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments. Must include 'name', 'prompt',
+                      and 'plan'. The 'plan' should be a list of ISO 8601
+                      datetime strings. Can also include 'system_prompt',
+                      'attachments', and 'dedicated_context'.
+
+        Returns:
+            A Response object with a confirmation message and the new task's UUID.
+        """
         name: str = kwargs.get("name", "")
         system_prompt: str = kwargs.get("system_prompt", "")
         prompt: str = kwargs.get("prompt", "")
@@ -256,6 +367,19 @@ class SchedulerTool(Tool):
         return Response(message=f"Planned task '{name}' created: {task.uuid}", break_loop=False)
 
     async def wait_for_task(self, **kwargs) -> Response:
+        """
+        Waits for a task to complete.
+
+        This method polls the task's state until it is no longer 'RUNNING'.
+        It can only be used for tasks running in a dedicated context.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments. Must include 'uuid'.
+
+        Returns:
+            A Response object containing the final state, last run time, and
+            result of the task.
+        """
         task_uuid: str = kwargs.get("uuid", "")
         if not task_uuid:
             return Response(message="Task UUID is required", break_loop=False)

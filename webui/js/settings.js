@@ -1,3 +1,8 @@
+/**
+ * @file This file defines the Alpine.js data and logic for the main settings modal.
+ * It handles tab switching, fetching and saving settings, and interaction with
+ * other components like the scheduler and notifications.
+ */
 const settingsModalProxy = {
     isOpen: false,
     settings: {},
@@ -5,7 +10,10 @@ const settingsModalProxy = {
     activeTab: 'agent', // Default tab
     provider: 'cloudflared',
 
-    // Computed property for filtered sections
+    /**
+     * A computed property that filters the settings sections based on the active tab.
+     * @returns {Array} The filtered array of sections.
+     */
     get filteredSections() {
         if (!this.settings || !this.settings.sections) return [];
         const filteredSections = this.settings.sections.filter(section => section.tab === this.activeTab);
@@ -18,7 +26,10 @@ const settingsModalProxy = {
         return filteredSections;
     },
 
-    // Switch tab method
+    /**
+     * Switches the active tab in the settings modal.
+     * @param {string} tabName - The name of the tab to switch to.
+     */
     switchTab(tabName) {
         // Update our component state
         this.activeTab = tabName;
@@ -70,6 +81,12 @@ const settingsModalProxy = {
         }, 10);
     },
 
+    /**
+     * Opens the settings modal, fetches the settings from the backend, and
+     * initializes the view.
+     * @returns {Promise<object>} A promise that resolves with the result of the
+     * modal interaction (e.g., 'saved' or 'cancelled').
+     */
     async openModal() {
         console.log('Settings modal opening');
         const modalEl = document.getElementById('settingsModal');
@@ -197,6 +214,10 @@ const settingsModalProxy = {
         }
     },
 
+    /**
+     * Handles clicks on the modal's primary buttons (e.g., Save, Cancel).
+     * @param {string} buttonId - The ID of the clicked button.
+     */
     async handleButton(buttonId) {
         if (buttonId === 'save') {
 
@@ -233,6 +254,9 @@ const settingsModalProxy = {
         }
     },
 
+    /**
+     * Handles the cancellation of the settings modal.
+     */
     async handleCancel() {
         this.resolvePromise({
             status: 'cancelled',
@@ -255,7 +279,10 @@ const settingsModalProxy = {
         }
     },
 
-    // Add a helper method to stop scheduler polling
+    /**
+     * A helper method to stop the scheduler's polling when the modal is closed.
+     * @private
+     */
     stopSchedulerPolling() {
         // Find the scheduler component and stop polling if it exists
         const schedulerElement = document.querySelector('[x-data="schedulerSettings"]');
@@ -268,6 +295,11 @@ const settingsModalProxy = {
         }
     },
 
+    /**
+     * Handles clicks on special button fields within the settings form, which
+     * typically open other modals.
+     * @param {object} field - The field object that was clicked.
+     */
     async handleFieldButton(field) {
         console.log(`Button clicked: ${field.id}`);
 

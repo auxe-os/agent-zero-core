@@ -1,3 +1,8 @@
+/**
+ * @file This module handles speech-to-text (via the microphone) and text-to-speech
+ * functionality using the browser's built-in APIs and the Transformers.js library
+ * for speech recognition.
+ */
 import { pipeline, read_audio } from './transformers@3.0.2.js';
 import { updateChatInput, sendMessage } from '../index.js';
 
@@ -14,7 +19,14 @@ const Status = {
     PROCESSING: 'processing'
 };
 
+/**
+ * Manages microphone input, audio recording, silence detection, and speech-to-text transcription.
+ */
 class MicrophoneInput {
+    /**
+     * @param {function(string, boolean): void} updateCallback - A function to call with the transcribed text.
+     * @param {object} [options={}] - Configuration options for the microphone input.
+     */
     constructor(updateCallback, options = {}) {
         this.mediaRecorder = null;
         this.audioChunks = [];
@@ -46,10 +58,18 @@ class MicrophoneInput {
         };
     }
 
+    /**
+     * Gets the current status of the microphone.
+     * @returns {string} The current status.
+     */
     get status() {
         return this._status;
     }
 
+    /**
+     * Sets the status of the microphone and updates the UI accordingly.
+     * @param {string} newStatus - The new status.
+     */
     set status(newStatus) {
         if (this._status === newStatus) return;
 
@@ -66,6 +86,12 @@ class MicrophoneInput {
         this.handleStatusChange(oldStatus, newStatus);
     }
 
+    /**
+     * Handles the transition between different microphone statuses.
+     * @param {string} oldStatus - The previous status.
+     * @param {string} newStatus - The new status.
+     * @private
+     */
     handleStatusChange(oldStatus, newStatus) {
 
         //last chunk kept only for transition to recording status
@@ -90,6 +116,7 @@ class MicrophoneInput {
         }
     }
 
+    /** @private */
     handleInactiveState() {
         this.stopRecording();
         this.stopAudioAnalysis();
@@ -99,6 +126,7 @@ class MicrophoneInput {
         }
     }
 
+    /** @private */
     handleListeningState() {
         this.stopRecording();
         this.audioChunks = [];
@@ -109,6 +137,7 @@ class MicrophoneInput {
         this.startAudioAnalysis();
     }
 
+    /** @private */
     handleRecordingState() {
         if (!this.hasStartedRecording && this.mediaRecorder.state !== 'recording') {
             this.hasStartedRecording = true;
@@ -121,6 +150,7 @@ class MicrophoneInput {
         }
     }
 
+    /** @private */
     handleWaitingState() {
         // Don't stop recording during waiting state
         this.waitingTimer = setTimeout(() => {
@@ -130,11 +160,16 @@ class MicrophoneInput {
         }, this.options.waitingTimeout);
     }
 
+    /** @private */
     handleProcessingState() {
         this.stopRecording();
         this.process();
     }
 
+    /**
+     * Stops the media recorder if it is currently recording.
+     * @private
+     */
     stopRecording() {
         if (this.mediaRecorder?.state === 'recording') {
             this.mediaRecorder.stop();
@@ -142,6 +177,10 @@ class MicrophoneInput {
         }
     }
 
+    /**
+     * Initializes the microphone, media recorder, and speech recognition pipeline.
+     * @returns {Promise<boolean>} A promise that resolves to true on success, false on failure.
+     */
     async initialize() {
         try {
             this.transcriber = await pipeline(
@@ -183,6 +222,11 @@ class MicrophoneInput {
         }
     }
 
+    /**
+     * Sets up the Web Audio API nodes for audio analysis.
+     * @param {MediaStream} stream - The microphone's media stream.
+     * @private
+     */
     setupAudioAnalysis(stream) {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         this.mediaStreamSource = this.audioContext.createMediaStreamSource(stream);
@@ -195,6 +239,10 @@ class MicrophoneInput {
     }
 
 
+    /**
+     * Starts the audio analysis loop for silence and speech detection.
+     * @private
+     */
     startAudioAnalysis() {
         const analyzeFrame = () => {
             if (this.status === Status.INACTIVE) return;
@@ -238,6 +286,10 @@ class MicrophoneInput {
         this.analysisFrame = requestAnimationFrame(analyzeFrame);
     }
 
+    /**
+     * Stops the audio analysis loop.
+     * @private
+     */
     stopAudioAnalysis() {
         if (this.analysisFrame) {
             cancelAnimationFrame(this.analysisFrame);
@@ -245,6 +297,11 @@ class MicrophoneInput {
         }
     }
 
+    /**
+     * Processes the recorded audio chunks, transcribes them to text, and
+     * invokes the update callback.
+     * @private
+     */
     async process() {
         if (this.audioChunks.length === 0) {
             this.status = Status.LISTENING;
@@ -276,6 +333,12 @@ class MicrophoneInput {
         }
     }
 
+    /**
+     * Filters the transcription result to remove common noise or filler words.
+     * @param {string} text - The raw transcribed text.
+     * @returns {string|undefined} The filtered text, or undefined if it's discarded.
+     * @private
+     */
     filterResult(text) {
         text = text.trim()
         let ok = false
@@ -293,7 +356,11 @@ class MicrophoneInput {
 
 
 
-// Initialize and handle click events
+/**
+ * Initializes the MicrophoneInput instance.
+ * @returns {Promise<boolean>} A promise that resolves to true if initialization is successful.
+ * @private
+ */
 async function initializeMicrophoneInput() {
     microphoneInput = new MicrophoneInput(
         async (text, isFinal) => {
@@ -340,7 +407,11 @@ microphoneButton.addEventListener('click', async () => {
     }
 });
 
-// Some error handling for microphone input
+/**
+ * Requests microphone permission from the user.
+ * @returns {Promise<boolean>} A promise that resolves to true if permission is granted.
+ * @private
+ */
 async function requestMicrophonePermission() {
     try {
         await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -353,12 +424,21 @@ async function requestMicrophonePermission() {
 }
 
 
+/**
+ * Manages text-to-speech synthesis using the browser's built-in capabilities.
+ */
 class Speech {
     constructor() {
         this.synth = window.speechSynthesis;
         this.utterance = null;
     }
 
+    /**
+     * Strips emojis and extra whitespace from a string.
+     * @param {string} str - The input string.
+     * @returns {string} The cleaned string.
+     * @private
+     */
     stripEmojis(str) {
         return str
             .replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g, '')
@@ -366,6 +446,10 @@ class Speech {
             .trim();
     }
 
+    /**
+     * Speaks the given text aloud.
+     * @param {string} text - The text to be spoken.
+     */
     speak(text) {
         console.log('Speaking:', text);
         // Stop any current utterance
@@ -379,12 +463,19 @@ class Speech {
         this.synth.speak(this.utterance);
     }
 
+    /**
+     * Stops any currently speaking utterance.
+     */
     stop() {
         if (this.isSpeaking()) {
             this.synth.cancel();
         }
     }
 
+    /**
+     * Checks if the speech synthesis is currently active.
+     * @returns {boolean} True if speaking, false otherwise.
+     */
     isSpeaking() {
         return this.synth?.speaking || false;
     }

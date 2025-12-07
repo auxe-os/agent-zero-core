@@ -3,7 +3,22 @@ from python.helpers.secrets import get_secrets_manager
 
 
 class MaskReasoningStreamChunk(Extension):
+    """
+    An extension that masks sensitive information in real-time as the agent's
+    reasoning is being streamed.
+    """
     async def execute(self, **kwargs):
+        """
+        Executes the reasoning stream masking extension.
+
+        This method processes each chunk of the streamed reasoning, using a
+        streaming filter to identify and mask secrets. It also masks the
+        full accumulated text for consistency.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments. Expected to contain
+                      'stream_data' (a dict with 'chunk' and 'full' keys) and 'agent'.
+        """
         # Get stream data and agent from kwargs
         stream_data = kwargs.get("stream_data")
         agent = kwargs.get("agent")

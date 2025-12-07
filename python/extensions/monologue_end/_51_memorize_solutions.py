@@ -9,8 +9,26 @@ from python.tools.memory_load import DEFAULT_THRESHOLD as DEFAULT_MEMORY_THRESHO
 
 
 class MemorizeSolutions(Extension):
+    """
+    An extension that identifies and memorizes successful solutions from the
+    agent's conversation history. This allows the agent to recall and reuse
+    effective solutions in the future.
+    """
 
     async def execute(self, loop_data: LoopData = LoopData(), **kwargs):
+        """
+        Executes the solution memorization extension.
+
+        This method checks if memorization is enabled and, if so, creates an
+        asynchronous task to find and store successful solutions.
+
+        Args:
+            loop_data: The current loop data.
+            **kwargs: Arbitrary keyword arguments.
+
+        Returns:
+            An asyncio.Task object for the memorization process.
+        """
         # try:
 
         set = settings.get_settings()
@@ -29,6 +47,18 @@ class MemorizeSolutions(Extension):
         return task
 
     async def memorize(self, loop_data: LoopData, log_item: LogItem, **kwargs):
+        """
+        Performs the core solution memorization process.
+
+        This method uses an LLM to identify problem-solution pairs in the
+        conversation. It then processes each solution, either by adding it as a
+        new memory or by consolidating it with existing similar solutions.
+
+        Args:
+            loop_data: The current loop data.
+            log_item: The log item to update with the progress.
+            **kwargs: Arbitrary keyword arguments.
+        """
 
         set = settings.get_settings()
 

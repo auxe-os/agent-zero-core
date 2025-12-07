@@ -1,3 +1,9 @@
+/**
+ * @file This file provides utilities for dynamically manipulating CSS rules at runtime.
+ * It creates a dedicated stylesheet for adding new rules and provides functions
+ * to modify existing rules across all stylesheets on the page.
+ */
+
 // Create and keep a reference to a dynamic stylesheet for runtime CSS changes
 let dynamicStyleSheet;
 {
@@ -7,6 +13,15 @@ let dynamicStyleSheet;
   dynamicStyleSheet = style.sheet;
 }
 
+/**
+ * Dynamically adds, updates, or removes a CSS property for a given selector.
+ * It searches for the selector across all stylesheets. If found, it modifies the
+ * existing rule. If not found, it creates a new rule in a dedicated dynamic
+ * stylesheet.
+ * @param {string} selector - The CSS selector to target (e.g., '.my-class', '#my-id').
+ * @param {string} property - The CSS property to modify (e.g., 'color', 'font-size').
+ * @param {string | undefined} value - The new value for the property. If undefined, the property is removed.
+ */
 export function toggleCssProperty(selector, property, value) {
   // Get the stylesheet that contains the class
   const styleSheets = document.styleSheets;
@@ -40,7 +55,13 @@ export function toggleCssProperty(selector, property, value) {
   _applyCssToRule(rule, property, value);
 }
 
-// Helper to apply/remove a CSS property on a rule
+/**
+ * A helper function to apply or remove a CSS property on a given CSS rule.
+ * @param {CSSStyleRule} rule - The CSS rule object to modify.
+ * @param {string} property - The CSS property to set or remove.
+ * @param {string | undefined} value - The value to set for the property. If undefined, the property is removed.
+ * @private
+ */
 function _applyCssToRule(rule, property, value) {
     if (value === undefined) {
       rule.style.removeProperty(property);

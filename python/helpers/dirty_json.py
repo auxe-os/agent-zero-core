@@ -1,6 +1,15 @@
 import json
 
 def try_parse(json_string: str):
+    """Tries to parse a JSON string, falling back to a dirty JSON parser if
+    the standard parser fails.
+
+    Args:
+        json_string: The JSON string to parse.
+
+    Returns:
+        The parsed JSON object.
+    """
     try:
         return json.loads(json_string)
     except json.JSONDecodeError:
@@ -8,18 +17,38 @@ def try_parse(json_string: str):
 
 
 def parse(json_string: str):
+    """Parses a dirty JSON string.
+
+    Args:
+        json_string: The dirty JSON string to parse.
+
+    Returns:
+        The parsed JSON object.
+    """
     return DirtyJson.parse_string(json_string)
 
 
 def stringify(obj, **kwargs):
+    """Converts a Python object to a JSON string.
+
+    Args:
+        obj: The object to convert.
+        **kwargs: Additional keyword arguments to pass to `json.dumps`.
+
+    Returns:
+        The JSON string.
+    """
     return json.dumps(obj, ensure_ascii=False, **kwargs)
 
 
 class DirtyJson:
+    """A parser for dirty JSON strings."""
     def __init__(self):
+        """Initializes a DirtyJson parser."""
         self._reset()
 
     def _reset(self):
+        """Resets the parser to its initial state."""
         self.json_string = ""
         self.index = 0
         self.current_char = None
@@ -28,10 +57,26 @@ class DirtyJson:
 
     @staticmethod
     def parse_string(json_string):
+        """Parses a dirty JSON string.
+
+        Args:
+            json_string: The dirty JSON string to parse.
+
+        Returns:
+            The parsed JSON object.
+        """
         parser = DirtyJson()
         return parser.parse(json_string)
 
     def parse(self, json_string):
+        """Parses a dirty JSON string.
+
+        Args:
+            json_string: The dirty JSON string to parse.
+
+        Returns:
+            The parsed JSON object.
+        """
         self._reset()
         self.json_string = json_string
 
@@ -52,6 +97,14 @@ class DirtyJson:
         return self.result
 
     def feed(self, chunk):
+        """Feeds a chunk of a JSON string to the parser.
+
+        Args:
+            chunk: The chunk to feed.
+
+        Returns:
+            The parsed JSON object, or None if the object is not yet complete.
+        """
         self.json_string += chunk
         if not self.current_char and self.json_string:
             self.current_char = self.json_string[0]

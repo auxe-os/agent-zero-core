@@ -12,12 +12,28 @@ class ToolUsageAnalytics(Extension):
     """Analyzes tool usage at the end of each message loop"""
     
     def __init__(self, agent, **kwargs):
+        """
+        Initializes the ToolUsageAnalytics extension.
+
+        Args:
+            agent: The agent instance.
+            **kwargs: Arbitrary keyword arguments.
+        """
         super().__init__(agent=agent, **kwargs)
         self.session_start = datetime.now()
         self.loop_count = 0
     
     async def execute(self, loop_data: LoopData = LoopData(), **kwargs):
-        """Analyze tool usage after each message loop"""
+        """
+        Executes the tool usage analysis at the end of a message loop.
+
+        This method gathers data on the tools used in the loop, analyzes their
+        effectiveness, updates selection preferences, and logs the analytics.
+
+        Args:
+            loop_data: The current loop data.
+            **kwargs: Arbitrary keyword arguments.
+        """
         try:
             self.loop_count += 1
             
@@ -42,7 +58,13 @@ class ToolUsageAnalytics(Extension):
             PrintStyle().print(f"Tool usage analytics error: {e}")
     
     def _get_tools_used_in_loop(self) -> List[str]:
-        """Get list of tools used in the current loop"""
+        """
+        Gets a list of unique tool names used in the current message loop by
+        inspecting the agent's recent history.
+
+        Returns:
+            A list of tool names.
+        """
         tools_used = []
         
         try:
@@ -67,7 +89,15 @@ class ToolUsageAnalytics(Extension):
         return tools_used
     
     async def _analyze_tool_effectiveness(self, tools_used: List[str]):
-        """Analyze effectiveness of tools used"""
+        """
+        Analyzes the effectiveness of the tools used in the loop.
+
+        It calculates an effectiveness score for each tool and stores it in the
+        agent's context for future reference.
+
+        Args:
+            tools_used: A list of tool names used in the loop.
+        """
         try:
             for tool_name in tools_used:
                 # Get tool execution data
@@ -94,7 +124,16 @@ class ToolUsageAnalytics(Extension):
             PrintStyle().print(f"Error analyzing tool effectiveness: {e}")
     
     def _get_tool_execution_data(self, tool_name: str) -> Dict[str, Any]:
-        """Get execution data for a specific tool"""
+        """
+        Retrieves execution data for a specific tool from the agent's recent history.
+
+        Args:
+            tool_name: The name of the tool to get data for.
+
+        Returns:
+            A dictionary containing the tool call data, or an empty dictionary
+            if not found.
+        """
         try:
             # Look for tool execution in recent history
             # Note: Using simplified approach since get_last_entries may not exist
@@ -115,7 +154,17 @@ class ToolUsageAnalytics(Extension):
         return {}
     
     def _calculate_effectiveness(self, tool_data: Dict[str, Any]) -> float:
-        """Calculate effectiveness score for a tool"""
+        """
+        Calculates an effectiveness score for a tool based on its execution data.
+
+        The score considers success status, response time, and output quality.
+
+        Args:
+            tool_data: A dictionary containing the tool's execution data.
+
+        Returns:
+            An effectiveness score between 0.0 and 1.0.
+        """
         score = 0.5  # Base score
         
         # Factor in success rate
@@ -138,7 +187,15 @@ class ToolUsageAnalytics(Extension):
         return min(score, 1.0)
     
     async def _update_selection_preferences(self, tools_used: List[str]):
-        """Update tool selection preferences based on usage"""
+        """
+        Updates the tool selection preferences based on the latest analytics.
+
+        This method calculates a preference score for each used tool and updates
+        the global preferences in the agent's context.
+
+        Args:
+            tools_used: A list of tool names used in the loop.
+        """
         try:
             preferences = {}
             
@@ -165,7 +222,12 @@ class ToolUsageAnalytics(Extension):
             PrintStyle().print(f"Error updating selection preferences: {e}")
     
     def _log_analytics(self, tools_used: List[str]):
-        """Log analytics data"""
+        """
+        Logs a simple message indicating which tools were used in the current loop.
+
+        Args:
+            tools_used: A list of tool names used in the loop.
+        """
         try:
             PrintStyle().print(
                 f"Tools used in loop {self.loop_count}: {', '.join(tools_used)}"
@@ -175,7 +237,10 @@ class ToolUsageAnalytics(Extension):
             pass
     
     async def _generate_summary(self):
-        """Generate periodic analytics summary"""
+        """
+        Generates and logs a periodic summary of tool usage analytics for the
+        current session.
+        """
         try:
             if not hasattr(self.agent, 'context'):
                 return

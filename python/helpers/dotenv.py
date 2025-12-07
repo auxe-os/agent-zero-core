@@ -11,17 +11,39 @@ KEY_RFC_PASSWORD = "RFC_PASSWORD"
 KEY_ROOT_PASSWORD = "ROOT_PASSWORD"
 
 def load_dotenv():
+    """Loads the .env file."""
     _load_dotenv(get_dotenv_file_path(), override=True)
 
 
 def get_dotenv_file_path():
+    """Gets the path to the .env file.
+
+    Returns:
+        The path to the .env file.
+    """
     return get_abs_path(".env")
 
 def get_dotenv_value(key: str, default: Any = None):
+    """Gets a value from the .env file.
+
+    Args:
+        key: The key to get.
+        default: The default value to return if the key is not found.
+
+    Returns:
+        The value of the key, or the default value if the key is not
+        found.
+    """
     # load_dotenv()       
     return os.getenv(key, default)
 
 def save_dotenv_value(key: str, value: str):
+    """Saves a value to the .env file.
+
+    Args:
+        key: The key to save.
+        value: The value to save.
+    """
     if value is None:
         value = ""
     dotenv_path = get_dotenv_file_path()

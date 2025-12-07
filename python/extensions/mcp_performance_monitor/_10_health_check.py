@@ -25,6 +25,10 @@ class McpHealthMonitor(Extension):
     """Monitors MCP server health and performance"""
     
     def __init__(self):
+        """
+        Initializes the McpHealthMonitor with default settings for check intervals
+        and failure thresholds.
+        """
         self.server_health: Dict[str, ServerHealthStatus] = {}
         self.check_interval = timedelta(minutes=2)
         self.last_check = datetime.now()
@@ -32,7 +36,16 @@ class McpHealthMonitor(Extension):
         self.unhealthy_servers = set()
     
     async def execute(self, loop_data: LoopData = LoopData(), **kwargs) -> None:
-        """Monitor MCP server health"""
+        """
+        Executes the MCP health monitoring check.
+
+        This method runs periodically, triggers the health check for all configured
+        MCP servers, and updates the tool selection based on server health.
+
+        Args:
+            loop_data: The current loop data (not used but part of the extension signature).
+            **kwargs: Arbitrary keyword arguments.
+        """
         try:
             # Check if it's time for health monitoring
             if datetime.now() - self.last_check < self.check_interval:
@@ -48,7 +61,13 @@ class McpHealthMonitor(Extension):
             PrintStyle().print(f"MCP health monitoring error: {e}")
     
     async def _perform_health_check(self):
-        """Perform health check on all MCP servers"""
+        """
+        Performs a health check on all configured MCP servers.
+
+        For each server, it attempts to fetch the list of tools to verify
+        connectivity and measures the response time. It tracks consecutive
+        failures and marks a server as unhealthy if it exceeds a threshold.
+        """
         mcp_config = MCPConfig.get_instance()
         
         for server in mcp_config.servers:
@@ -105,7 +124,11 @@ class McpHealthMonitor(Extension):
                 )
     
     async def _update_tool_selection(self):
-        """Update tool selection based on server health"""
+        """
+        Updates the agent's context with the list of unhealthy MCP servers.
+        This information can be used by the tool selector to avoid using tools
+        from unhealthy servers.
+        """
         if not self.unhealthy_servers:
             return
         
@@ -119,7 +142,13 @@ class McpHealthMonitor(Extension):
         )
     
     def get_health_summary(self) -> Dict[str, Any]:
-        """Get health summary of all MCP servers"""
+        """
+        Gets a summary of the health status of all monitored MCP servers.
+
+        Returns:
+            A dictionary containing aggregated health statistics and detailed
+            status for each server.
+        """
         total_servers = len(self.server_health)
         healthy_servers = sum(1 for health in self.server_health.values() if health.is_healthy)
         
@@ -142,6 +171,14 @@ class McpHealthMonitor(Extension):
         }
     
     def is_server_healthy(self, server_name: str) -> bool:
-        """Check if a specific server is healthy"""
+        """
+        Checks if a specific MCP server is currently considered healthy.
+
+        Args:
+            server_name: The name of the server to check.
+
+        Returns:
+            True if the server is healthy or not being monitored, False otherwise.
+        """
         health = self.server_health.get(server_name)
         return health.is_healthy if health else True
