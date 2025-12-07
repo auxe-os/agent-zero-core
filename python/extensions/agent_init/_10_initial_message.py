@@ -4,6 +4,10 @@ from python.helpers.extension import Extension
 
 
 class InitialMessage(Extension):
+    """
+    An extension that adds an initial greeting message to the agent's history
+    at the beginning of a new session.
+    """
 
     async def execute(self, **kwargs):
         """

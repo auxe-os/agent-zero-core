@@ -2,8 +2,11 @@
 const stores = new Map();
 
 /**
- * Creates a store that can be used to share state between components.
- * Uses initial state object and returns a proxy to it that uses Alpine when initialized
+ * Creates a reactive store for sharing state between components.
+ * It initializes with a given state object and returns a proxy. This proxy
+ * ensures that any changes to the state are automatically tracked by Alpine.js,
+ * updating the UI accordingly. The store is registered with Alpine either
+ * immediately if Alpine is already initialized, or once it's ready.
  * @template T
  * @param {string} name
  * @param {T} initialState

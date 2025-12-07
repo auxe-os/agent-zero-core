@@ -5,8 +5,19 @@ from python.extensions.hist_add_tool_result import _90_save_tool_call_file as sa
 
 
 class Delegation(Tool):
+    """A tool for delegating tasks to a subordinate agent."""
 
     async def execute(self, message="", reset="", **kwargs):
+        """Executes the tool.
+
+        Args:
+            message: The message to send to the subordinate agent.
+            reset: Whether to reset the subordinate agent's state.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            A Response object.
+        """
         # create subordinate agent using the data object on this agent and set superior agent to his data object
         if (
             self.agent.get_data(Agent.DATA_NAME_SUBORDINATE) is None

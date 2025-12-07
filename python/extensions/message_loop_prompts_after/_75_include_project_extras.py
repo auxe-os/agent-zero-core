@@ -4,7 +4,22 @@ from python.helpers import projects
 
 
 class IncludeProjectExtras(Extension):
+    """
+    An extension that includes project-specific information, such as the file
+    structure, in the agent's prompt context.
+    """
     async def execute(self, loop_data: LoopData = LoopData(), **kwargs):
+        """
+        Executes the extension to add project-specific extras.
+
+        This method checks if there is an active project. If so, and if the
+        file structure inclusion is enabled in the project's settings, it
+        generates a file structure prompt and adds it to the loop data.
+
+        Args:
+            loop_data: The current loop data.
+            **kwargs: Arbitrary keyword arguments.
+        """
 
         # active project
         project_name = projects.get_context_project_name(self.agent.context)
@@ -32,7 +47,16 @@ class IncludeProjectExtras(Extension):
 
 
 def cleanup_gitignore(gitignore_raw: str) -> str:
-    """Process gitignore: split lines, strip, remove comments, remove empty lines."""
+    """
+    Processes a raw gitignore string by stripping whitespace, removing comments,
+    and removing empty lines.
+
+    Args:
+        gitignore_raw: The raw string content of a gitignore file.
+
+    Returns:
+        A cleaned gitignore string with one pattern per line.
+    """
     gitignore_lines = []
     for line in gitignore_raw.split('\n'):
         # Strip whitespace

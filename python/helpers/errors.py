@@ -4,16 +4,40 @@ import asyncio
 
 
 def handle_error(e: Exception):
+    """Handles an exception, re-raising it if it is a CancelledError.
+
+    Args:
+        e: The exception to handle.
+    """
     # if asyncio.CancelledError, re-raise
     if isinstance(e, asyncio.CancelledError):
         raise e
 
 
 def error_text(e: Exception):
+    """Gets the text of an exception.
+
+    Args:
+        e: The exception.
+
+    Returns:
+        The text of the exception.
+    """
     return str(e)
 
 
 def format_error(e: Exception, start_entries=6, end_entries=4):
+    """Formats an exception and its traceback into a string.
+
+    Args:
+        e: The exception to format.
+        start_entries: The number of traceback entries to show from the
+                       beginning.
+        end_entries: The number of traceback entries to show from the end.
+
+    Returns:
+        The formatted error string.
+    """
     # format traceback from the provided exception instead of the most recent one
     traceback_text = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
     # Split the traceback into lines
@@ -66,5 +90,5 @@ def format_error(e: Exception, start_entries=6, end_entries=4):
 
 
 class RepairableException(Exception):
-    """An exception type indicating errors that can be surfaced to the LLM for potential self-repair."""
+    """An exception that can be repaired by the LLM."""
     pass

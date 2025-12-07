@@ -15,35 +15,66 @@ Output = Union[Dict[str, Any], Response, TypedDict]  # type: ignore
 
 
 class ApiHandler:
+    """An abstract base class for API handlers."""
     def __init__(self, app: Flask, thread_lock: threading.Lock):
+        """Initializes an ApiHandler.
+
+        Args:
+            app: The Flask application.
+            thread_lock: A lock for thread safety.
+        """
         self.app = app
         self.thread_lock = thread_lock
 
     @classmethod
     def requires_loopback(cls) -> bool:
+        """Whether the handler requires a loopback connection."""
         return False
 
     @classmethod
     def requires_api_key(cls) -> bool:
+        """Whether the handler requires an API key."""
         return False
 
     @classmethod
     def requires_auth(cls) -> bool:
+        """Whether the handler requires authentication."""
         return True
 
     @classmethod
     def get_methods(cls) -> list[str]:
+        """Gets the HTTP methods that the handler supports."""
         return ["POST"]
 
     @classmethod
     def requires_csrf(cls) -> bool:
+        """Whether the handler requires CSRF protection."""
         return cls.requires_auth()
 
     @abstractmethod
     async def process(self, input: Input, request: Request) -> Output:
+        """Processes a request.
+
+        This method must be implemented by subclasses.
+
+        Args:
+            input: The input data from the request.
+            request: The Flask request object.
+
+        Returns:
+            The output to be sent in the response.
+        """
         pass
 
     async def handle_request(self, request: Request) -> Response:
+        """Handles a request.
+
+        Args:
+            request: The Flask request object.
+
+        Returns:
+            A Flask response object.
+        """
         try:
             # input data from request based on type
             input_data: Input = {}
@@ -81,6 +112,16 @@ class ApiHandler:
 
     # get context to run agent zero in
     def use_context(self, ctxid: str, create_if_not_exists: bool = True):
+        """Gets or creates an agent context.
+
+        Args:
+            ctxid: The ID of the context to use.
+            create_if_not_exists: Whether to create the context if it does
+                                  not exist.
+
+        Returns:
+            The agent context.
+        """
         with self.thread_lock:
             if not ctxid:
                 first = AgentContext.first()

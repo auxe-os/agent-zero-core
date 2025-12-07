@@ -23,6 +23,14 @@ class KnowledgeImport(TypedDict):
 
 
 def calculate_checksum(file_path: str) -> str:
+    """Calculates the MD5 checksum of a file.
+
+    Args:
+        file_path: The path to the file.
+
+    Returns:
+        The MD5 checksum of the file.
+    """
     hasher = hashlib.md5()
     with open(file_path, "rb") as f:
         buf = f.read()
@@ -38,11 +46,22 @@ def load_knowledge(
     filename_pattern: str = "**/*",
     recursive: bool = True,
 ) -> Dict[str, KnowledgeImport]:
-    """
-    Load knowledge files from a directory with change detection and metadata enhancement.
+    """Loads knowledge files from a directory.
 
-    This function now includes enhanced error handling and compatibility with the
-    intelligent memory consolidation system.
+    This function scans a directory for files, calculates their checksums,
+    and loads their content using the appropriate loader. It also detects
+    changes to files and marks them as "changed", "original", or "removed".
+
+    Args:
+        log_item: A log item to stream progress to.
+        knowledge_dir: The directory to load knowledge from.
+        index: A dictionary containing the current knowledge index.
+        metadata: A dictionary of metadata to add to each document.
+        filename_pattern: A glob pattern to match filenames against.
+        recursive: Whether to search for files recursively.
+
+    Returns:
+        The updated knowledge index.
     """
 
     # Mapping file extensions to corresponding loader classes

@@ -5,8 +5,26 @@ from python.helpers.document_query import DocumentQueryHelper
 
 
 class DocumentQueryTool(Tool):
+    """
+    A tool for querying documents. It can retrieve the full content of documents
+    or perform question-answering on them if queries are provided.
+    """
 
     async def execute(self, **kwargs):
+        """
+        Executes the document query tool.
+
+        This method handles both retrieving full document content and performing
+        question-answering based on the provided arguments.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments. Expected keys are 'document'
+                      (or 'documents') and optionally 'query' (or 'queries').
+
+        Returns:
+            A Response object containing the document content or the answer
+            to the query, or an error message.
+        """
         document_uri = kwargs.get("document")
         document_uris = []
 

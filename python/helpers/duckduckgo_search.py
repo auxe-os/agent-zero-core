@@ -15,6 +15,17 @@
 from duckduckgo_search import DDGS
 
 def search(query: str, results = 5, region = "wt-wt", time="y") -> list[str]:
+    """Searches DuckDuckGo for the given query.
+
+    Args:
+        query: The query to search for.
+        results: The maximum number of results to return.
+        region: The region to search in.
+        time: The time range to search in.
+
+    Returns:
+        A list of search results.
+    """
 
     ddgs = DDGS()
     src = ddgs.text(

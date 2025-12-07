@@ -1,6 +1,9 @@
-// Import a component into a target element
-// Import a component and recursively load its nested components
-// Returns the parsed document for additional processing
+/**
+ * @file This file manages the dynamic loading and lifecycle of HTML components.
+ * It defines a custom HTML tag `<x-component>` that can be used to import
+ * HTML files, including their associated styles and scripts, into the DOM.
+ * The script handles caching, nested components, and script execution order.
+ */
 
 // cache object to store loaded components
 const componentCache = {};
@@ -8,6 +11,16 @@ const componentCache = {};
 // Lock map to prevent multiple simultaneous imports of the same component
 const importLocks = new Map();
 
+/**
+ * Dynamically imports an HTML component into a specified target element.
+ * It fetches the component's HTML, injects its styles, executes its scripts
+ * (both inline and external, module and non-module), and appends its content.
+ * This function also handles caching of components and prevents redundant loads.
+ * @param {string} path - The path to the component's HTML file (e.g., 'my-component.html').
+ * @param {HTMLElement} targetElement - The DOM element to load the component into.
+ * @returns {Promise<Document | undefined>} A promise that resolves with the parsed
+ * component document, or undefined if the component is already being loaded.
+ */
 export async function importComponent(path, targetElement) {
   // Create a unique key for this import based on the target element
   const lockKey = targetElement.id || targetElement.getAttribute('data-component-id') || targetElement;
@@ -185,7 +198,11 @@ export async function importComponent(path, targetElement) {
   }
 }
 
-// Load all x-component tags starting from root elements
+/**
+ * Scans specified root elements for `<x-component>` tags and loads them.
+ * This function is used for the initial page load and for dynamically added content.
+ * @param {HTMLElement | HTMLElement[]} [roots=[document.documentElement]] - The root element(s) to search within.
+ */
 export async function loadComponents(roots = [document.documentElement]) {
   try {
     // Convert single root to array if needed
@@ -213,7 +230,14 @@ export async function loadComponents(roots = [document.documentElement]) {
   }
 }
 
-// Function to traverse parents and collect x-component attributes
+/**
+ * Traverses up the DOM tree from a given element and collects all attributes
+ * from parent `<x-component>` elements. This is useful for passing data down
+ * to nested components or scripts.
+ * @param {HTMLElement} el - The starting element.
+ * @returns {Object<string, any>} An object containing all collected attributes,
+ * with attributes from deeper components taking precedence.
+ */
 export function getParentAttributes(el) {
   let element = el;
   let attrs = {};

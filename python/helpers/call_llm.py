@@ -12,6 +12,7 @@ from langchain_core.language_models.llms import BaseLLM
 
 
 class Example(TypedDict):
+    """Represents an example for a few-shot prompt."""
     input: str
     output: str
 
@@ -22,6 +23,18 @@ async def call_llm(
     examples: list[Example] = [],
     callback: Callable[[str], None] | None = None
 ):
+    """Calls a language model with a system message, user message, and examples.
+
+    Args:
+        system: The system message.
+        model: The language model to call.
+        message: The user message.
+        examples: A list of examples for the few-shot prompt.
+        callback: A callback function to stream the response.
+
+    Returns:
+        The response from the language model.
+    """
 
     example_prompt = ChatPromptTemplate.from_messages(
         [

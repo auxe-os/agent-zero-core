@@ -62,14 +62,24 @@ _PRINTER = PrintStyle(italic=True, font_color="purple", padding=False)
 
 
 class AgentZeroWorker(Worker):  # type: ignore[misc]
-    """Agent Zero implementation of FastA2A Worker."""
+    """The Agent Zero implementation of the FastA2A Worker."""
 
     def __init__(self, broker, storage):
+        """Initializes the AgentZeroWorker.
+
+        Args:
+            broker: The message broker.
+            storage: The storage backend.
+        """
         super().__init__(broker=broker, storage=storage)
         self.storage = storage
 
     async def run_task(self, params: Any) -> None:  # params: TaskSendParams
-        """Execute a task by processing the message through Agent Zero."""
+        """Executes a task by processing a message through Agent Zero.
+
+        Args:
+            params: The task parameters.
+        """
         context = None
         try:
             task_id = params['id']
@@ -133,7 +143,11 @@ class AgentZeroWorker(Worker):  # type: ignore[misc]
                 _PRINTER.print(f"[A2A] Cleaned up failed context {context.id}")
 
     async def cancel_task(self, params: Any) -> None:  # params: TaskIdParams
-        """Cancel a running task."""
+        """Cancels a running task.
+
+        Args:
+            params: The task parameters.
+        """
         task_id = params['id']
         _PRINTER.print(f"[A2A] Cancelling task {task_id}")
         await self.storage.update_task(task_id=task_id, state='canceled')  # type: ignore[attr-defined]
@@ -141,15 +155,42 @@ class AgentZeroWorker(Worker):  # type: ignore[misc]
         # Note: No context cleanup needed since contexts are always temporary and cleaned up in run_task
 
     def build_message_history(self, history: List[Any]) -> List[Message]:  # type: ignore
+        """Builds a message history.
+
+        This method is not used in this implementation.
+
+        Args:
+            history: The history to build.
+
+        Returns:
+            A list of messages.
+        """
         # Not used in this simplified implementation
         return []
 
     def build_artifacts(self, result: Any) -> List[Artifact]:  # type: ignore
+        """Builds a list of artifacts.
+
+        This method is not used in this implementation.
+
+        Args:
+            result: The result to build artifacts from.
+
+        Returns:
+            A list of artifacts.
+        """
         # No artifacts for now
         return []
 
     def _convert_message(self, a2a_message: Message) -> UserMessage:  # type: ignore
-        """Convert A2A message to Agent Zero UserMessage."""
+        """Converts an A2A message to an Agent Zero UserMessage.
+
+        Args:
+            a2a_message: The A2A message to convert.
+
+        Returns:
+            An Agent Zero UserMessage.
+        """
         # Extract text from message parts
         text_parts = [part.get('text', '') for part in a2a_message.get('parts', []) if part.get('kind') == 'text']
         message_text = '\n'.join(text_parts)
@@ -169,11 +210,12 @@ class AgentZeroWorker(Worker):  # type: ignore[misc]
 
 
 class DynamicA2AProxy:
-    """Dynamic proxy for FastA2A server that allows reconfiguration."""
+    """A dynamic proxy for the FastA2A server that allows for reconfiguration."""
 
     _instance = None
 
     def __init__(self):
+        """Initializes the DynamicA2AProxy."""
         self.app = None
         self.token = ""
         self._lock = threading.Lock()  # Use threading.Lock instead of asyncio.Lock
@@ -192,12 +234,17 @@ class DynamicA2AProxy:
 
     @staticmethod
     def get_instance():
+        """Gets the singleton instance of the DynamicA2AProxy."""
         if DynamicA2AProxy._instance is None:
             DynamicA2AProxy._instance = DynamicA2AProxy()
         return DynamicA2AProxy._instance
 
     def reconfigure(self, token: str):
-        """Reconfigure the FastA2A server with new token."""
+        """Reconfigures the FastA2A server with a new token.
+
+        Args:
+            token: The new authentication token.
+        """
         self.token = token
         if FASTA2A_AVAILABLE:
             with self._lock:
@@ -207,7 +254,7 @@ class DynamicA2AProxy:
                 _PRINTER.print("[A2A] Reconfiguration scheduled for next request")
 
     def _configure(self):
-        """Configure the FastA2A application with Agent Zero integration."""
+        """Configures the FastA2A application with Agent Zero integration."""
         try:
             storage = InMemoryStorage()  # type: ignore[arg-type]
             broker = InMemoryBroker()  # type: ignore[arg-type]
@@ -270,7 +317,9 @@ class DynamicA2AProxy:
     # ---------------------------------------------------------------------
 
     def _register_shutdown(self):
-        """Register an atexit hook to gracefully stop worker & task manager."""
+        """Registers an atexit hook to gracefully stop the worker and task
+        manager.
+        """
 
         def _sync_shutdown():
             try:
@@ -285,7 +334,7 @@ class DynamicA2AProxy:
         atexit.register(_sync_shutdown)
 
     async def _async_shutdown(self):
-        """Async shutdown: cancel worker task & close task manager."""
+        """Performs an async shutdown of the worker and task manager."""
         if self._worker_bg_task and not self._worker_bg_task.done():
             self._worker_bg_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
@@ -297,7 +346,7 @@ class DynamicA2AProxy:
             pass
 
     async def _async_reconfigure(self):
-        """Perform async reconfiguration with proper lifecycle management."""
+        """Performs an async reconfiguration with proper lifecycle management."""
         _PRINTER.print("[A2A] Starting async reconfiguration")
 
         # Shutdown existing components
@@ -319,7 +368,9 @@ class DynamicA2AProxy:
         _PRINTER.print("[A2A] Async reconfiguration completed")
 
     async def _startup(self):
-        """Ensure TaskManager and Worker are running inside current event-loop."""
+        """Ensures that the TaskManager and Worker are running inside the
+        current event loop.
+        """
         if self._startup_done or not FASTA2A_AVAILABLE:
             return
         self._startup_done = True
@@ -336,7 +387,7 @@ class DynamicA2AProxy:
         _PRINTER.print("[A2A] Worker & TaskManager started")
 
     async def __call__(self, scope, receive, send):
-        """ASGI application interface with token-based routing."""
+        """The ASGI application interface with token-based routing."""
         if not FASTA2A_AVAILABLE:
             # FastA2A not available, return 503
             response = b'HTTP/1.1 503 Service Unavailable\r\n\r\nFastA2A not available'
@@ -506,10 +557,18 @@ class DynamicA2AProxy:
 
 
 def is_available():
-    """Check if FastA2A is available and properly configured."""
+    """Checks if FastA2A is available and properly configured.
+
+    Returns:
+        True if FastA2A is available and configured, False otherwise.
+    """
     return FASTA2A_AVAILABLE and DynamicA2AProxy.get_instance().app is not None
 
 
 def get_proxy():
-    """Get the FastA2A proxy instance."""
+    """Gets the FastA2A proxy instance.
+
+    Returns:
+        The DynamicA2AProxy instance.
+    """
     return DynamicA2AProxy.get_instance()

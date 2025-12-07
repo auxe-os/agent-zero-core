@@ -1,3 +1,8 @@
+/**
+ * @file Main entry point for the Agent Zero UI, handling core functionalities,
+ *       component connections, and global state management.
+ */
+
 import * as msgs from "/js/messages.js";
 import * as api from "/js/api.js";
 import * as css from "/js/css.js";
@@ -11,9 +16,10 @@ import { store as chatsStore } from "/components/sidebar/chats/chats-store.js";
 import { store as tasksStore } from "/components/sidebar/tasks/tasks-store.js";
 import { store as chatTopStore } from "/components/chat/top-section/chat-top-store.js";
 
-globalThis.fetchApi = api.fetchApi; // TODO - backward compatibility for non-modular scripts, remove once refactored to alpine
+/** @type {api.fetchApi} - Backward compatibility for non-modular scripts. */
+globalThis.fetchApi = api.fetchApi;
 
-// Declare variables for DOM elements, they will be assigned on DOMContentLoaded
+// These variables are assigned in the DOMContentLoaded event listener.
 let leftPanel,
   rightPanel,
   container,
@@ -26,13 +32,21 @@ let leftPanel,
   autoScrollSwitch,
   timeDate;
 
+/** @type {boolean} - Whether to automatically scroll the chat history. */
 let autoScroll = true;
+/** @type {string|null} - The current chat context ID. */
 let context = null;
-globalThis.resetCounter = 0; // Used by stores and getChatBasedId
+/** @type {number} - Counter for resetting chat-based IDs. */
+globalThis.resetCounter = 0;
+/** @type {boolean} - Flag to skip one speech synthesis action. */
 let skipOneSpeech = false;
 
 // Sidebar toggle logic is now handled by sidebar-store.js
 
+/**
+ * Sends the user's message and attachments to the backend.
+ * @returns {Promise<void>}
+ */
 export async function sendMessage() {
   const chatInputEl = document.getElementById("chat-input");
   if (!chatInputEl) {
@@ -111,6 +125,11 @@ export async function sendMessage() {
 }
 globalThis.sendMessage = sendMessage;
 
+/**
+ * Displays a toast notification for a fetch error.
+ * @param {string} text - The text to display in the toast.
+ * @param {Error} error - The error object.
+ */
 export function toastFetchError(text, error) {
   console.error(text, error);
   // Use new frontend error notification system (async, but we don't need to wait)
@@ -133,6 +152,10 @@ globalThis.toastFetchError = toastFetchError;
 
 // Event listeners will be set up in DOMContentLoaded
 
+/**
+ * Updates the chat input with the given text.
+ * @param {string} text - The text to append to the chat input.
+ */
 export function updateChatInput(text) {
   const chatInputEl = document.getElementById("chat-input");
   if (!chatInputEl) {
@@ -153,6 +176,10 @@ export function updateChatInput(text) {
   console.log("Updated chat input value:", chatInputEl.value);
 }
 
+/**
+ * Updates the time and date displayed in the UI.
+ * @returns {Promise<void>}
+ */
 async function updateUserTime() {
   let userTimeElement = document.getElementById("time-date");
 
@@ -193,10 +220,17 @@ function setMessage(id, type, heading, content, temp, kvps = null) {
   return result;
 }
 
+/**
+ * Loads knowledge into the input store.
+ * @returns {Promise<void>}
+ */
 globalThis.loadKnowledge = async function () {
   await inputStore.loadKnowledge();
 };
 
+/**
+ * Adjusts the height of the chat input textarea to fit its content.
+ */
 function adjustTextareaHeight() {
   const chatInputEl = document.getElementById("chat-input");
   if (chatInputEl) {
@@ -205,6 +239,12 @@ function adjustTextareaHeight() {
   }
 }
 
+/**
+ * Sends JSON data to the specified URL.
+ * @param {string} url - The URL to send the data to.
+ * @param {object} data - The data to send.
+ * @returns {Promise<object>} The JSON response.
+ */
 export const sendJsonData = async function (url, data) {
   return await api.callJsonApi(url, data);
   // const response = await api.fetchApi(url, {
@@ -224,6 +264,10 @@ export const sendJsonData = async function (url, data) {
 };
 globalThis.sendJsonData = sendJsonData;
 
+/**
+ * Generates a GUID.
+ * @returns {string} The generated GUID.
+ */
 function generateGUID() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
     var r = (Math.random() * 16) | 0;
@@ -232,11 +276,19 @@ function generateGUID() {
   });
 }
 
+/**
+ * Gets the connection status.
+ * @returns {boolean} The connection status.
+ */
 export function getConnectionStatus() {
   return chatTopStore.connected;
 }
 globalThis.getConnectionStatus = getConnectionStatus;
 
+/**
+ * Sets the connection status.
+ * @param {boolean} connected - The connection status.
+ */
 function setConnectionStatus(connected) {
   chatTopStore.connected = connected;
   // connectionStatus = connected;
@@ -250,10 +302,17 @@ function setConnectionStatus(connected) {
   // }
 }
 
+/** @type {number} - The last log version received from the server. */
 let lastLogVersion = 0;
+/** @type {string} - The GUID of the last log received from the server. */
 let lastLogGuid = "";
+/** @type {number} - The number of the last spoken log. */
 let lastSpokenNo = 0;
 
+/**
+ * Polls the server for updates to the chat log, notifications, and context.
+ * @returns {Promise<boolean>} Whether the chat was updated.
+ */
 export async function poll() {
   let updated = false;
   try {
@@ -389,12 +448,20 @@ export async function poll() {
 }
 globalThis.poll = poll;
 
+/**
+ * After messages are updated, speaks them if speech is enabled.
+ * @param {Array<object>} logs - The logs to process.
+ */
 function afterMessagesUpdate(logs) {
   if (localStorage.getItem("speech") == "true") {
     speakMessages(logs);
   }
 }
 
+/**
+ * Speaks the given messages.
+ * @param {Array<object>} logs - The logs to speak.
+ */
 function speakMessages(logs) {
   if (skipOneSpeech) {
     skipOneSpeech = false;
@@ -432,6 +499,11 @@ function speakMessages(logs) {
   }
 }
 
+/**
+ * Updates the progress bar.
+ * @param {string} progress - The progress text.
+ * @param {boolean} active - Whether the progress bar is active.
+ */
 function updateProgress(progress, active) {
   const progressBarEl = document.getElementById("progress-bar");
   if (!progressBarEl) return;
@@ -450,10 +522,19 @@ function updateProgress(progress, active) {
   }
 }
 
+/**
+ * Pauses or unpauses the agent.
+ * @param {boolean} paused - Whether to pause the agent.
+ * @returns {Promise<void>}
+ */
 globalThis.pauseAgent = async function (paused) {
   await inputStore.pauseAgent(paused);
 };
 
+/**
+ * Generates a short ID.
+ * @returns {string} The generated short ID.
+ */
 function generateShortId() {
   const chars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -464,12 +545,19 @@ function generateShortId() {
   return result;
 }
 
+/**
+ * Creates a new chat context.
+ */
 export const newContext = function () {
   context = generateShortId();
   setContext(context);
 };
 globalThis.newContext = newContext;
 
+/**
+ * Sets the current chat context.
+ * @param {string} id - The ID of the context to set.
+ */
 export const setContext = function (id) {
   if (id == context) return;
   context = id;
@@ -494,6 +582,9 @@ export const setContext = function (id) {
   if (localStorage.getItem("speech") == "true") skipOneSpeech = true;
 };
 
+/**
+ * Deselects the current chat.
+ */
 export const deselectChat = function () {
   // Clear current context to show welcome screen
   setContext(null);
@@ -507,29 +598,62 @@ export const deselectChat = function () {
 };
 globalThis.deselectChat = deselectChat;
 
+/**
+ * Gets the current chat context.
+ * @returns {string} The current chat context.
+ */
 export const getContext = function () {
   return context;
 };
 globalThis.getContext = getContext;
 globalThis.setContext = setContext;
 
+/**
+ * Gets a chat-based ID.
+ * @param {string} id - The ID to base the chat-based ID on.
+ * @returns {string} The chat-based ID.
+ */
 export const getChatBasedId = function (id) {
   return context + "-" + globalThis.resetCounter + "-" + id;
 };
 
+/**
+ * Adds a class to an element.
+ * @param {HTMLElement} element - The element to add the class to.
+ * @param {string} className - The class to add.
+ */
 function addClassToElement(element, className) {
   element.classList.add(className);
 }
 
+/**
+ * Removes a class from an element.
+ * @param {HTMLElement} element - The element to remove the class from.
+ * @param {string} className - The class to remove.
+ */
 function removeClassFromElement(element, className) {
   element.classList.remove(className);
 }
 
+/**
+ * Displays a toast notification that is not sent to the backend.
+ * @param {string} text - The text to display.
+ * @param {string} [type="info"] - The type of toast.
+ * @param {number} [timeout=5000] - The timeout in milliseconds.
+ * @param {string} [group=""] - The group to put the toast in.
+ */
 export function justToast(text, type = "info", timeout = 5000, group = "") {
   notificationStore.addFrontendToastOnly(type, text, "", timeout / 1000, group);
 }
 globalThis.justToast = justToast;
 
+/**
+ * Displays a toast notification.
+ * @param {string} text - The text to display.
+ * @param {string} [type="info"] - The type of toast.
+ * @param {number} [timeout=5000] - The timeout in milliseconds.
+ * @returns {Promise<void>}
+ */
 export function toast(text, type = "info", timeout = 5000) {
   // Convert timeout from milliseconds to seconds for new notification system
   const display_time = Math.max(timeout / 1000, 1); // Minimum 1 second
@@ -551,11 +675,18 @@ globalThis.toast = toast;
 
 // OLD: hideToast function removed - now using new notification system
 
+/**
+ * Handles scroll changes.
+ * @param {boolean} isAtBottom - Whether the scroll is at the bottom.
+ */
 function scrollChanged(isAtBottom) {
   // Reflect scroll state into preferences store; UI is bound via x-model
   preferencesStore.autoScroll = isAtBottom;
 }
 
+/**
+ * Updates the UI after a scroll event.
+ */
 export function updateAfterScroll() {
   // const toleranceEm = 1; // Tolerance in em units
   // const tolerancePx = toleranceEm * parseFloat(getComputedStyle(document.documentElement).fontSize); // Convert em to pixels
@@ -573,6 +704,10 @@ globalThis.updateAfterScroll = updateAfterScroll;
 
 // setInterval(poll, 250);
 
+/**
+ * Starts polling the server for updates.
+ * @returns {Promise<void>}
+ */
 async function startPolling() {
   const shortInterval = 25;
   const longInterval = 250;
@@ -632,7 +767,10 @@ document.addEventListener("DOMContentLoaded", function () {
  * - Tasks use the same context system as chats for communication with the backend
  */
 
-// Open the scheduler detail view for a specific task
+/**
+ * Opens the scheduler detail view for a specific task.
+ * @param {string} taskId - The ID of the task to open.
+ */
 function openTaskDetail(taskId) {
   // Wait for Alpine.js to be fully loaded
   if (globalThis.Alpine) {

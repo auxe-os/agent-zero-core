@@ -3,7 +3,23 @@ from python.helpers.extension import Extension
 
 
 class ReplaceLastToolOutput(Extension):
+    """
+    An extension that replaces placeholders like {last_tool_output} in a tool's
+    arguments with the actual output from the previously executed tool.
+    """
     async def execute(self, tool_args: dict[str, Any] | None = None, tool_name: str = "", **kwargs):
+        """
+        Executes the placeholder replacement extension.
+
+        This method recursively searches through the arguments of the current
+        tool call and replaces any instances of '{last_tool_output}' with the
+        output of the last tool call.
+
+        Args:
+            tool_args: The arguments for the tool about to be executed.
+            tool_name: The name of the tool about to be executed.
+            **kwargs: Arbitrary keyword arguments.
+        """
         if not tool_args:
             return
 

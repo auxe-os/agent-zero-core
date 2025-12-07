@@ -4,6 +4,12 @@ import os
 from python.helpers import files
 
 def get_git_info():
+    """Gets information about the Git repository.
+
+    Returns:
+        A dictionary containing the branch name, commit hash, commit time,
+        tag, short tag, and version.
+    """
     # Get the current working directory (assuming the repo is in the same folder as the script)
     repo_path = files.get_base_dir()
     
@@ -50,6 +56,12 @@ def get_git_info():
     return git_info
 
 def get_version():
+    """Gets the version of the application.
+
+    Returns:
+        The version of the application, or "unknown" if it cannot be
+        determined.
+    """
     try:
         git_info = get_git_info()
         return str(git_info.get("short_tag", "")).strip() or "unknown"

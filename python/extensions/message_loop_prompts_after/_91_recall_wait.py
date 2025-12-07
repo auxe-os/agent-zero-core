@@ -5,7 +5,24 @@ from python.extensions.message_loop_prompts_after._50_recall_memories import DAT
 from python.helpers import settings
 
 class RecallWait(Extension):
+    """
+    An extension that handles the waiting for asynchronous memory recall tasks.
+    It can operate in two modes: either awaiting the task immediately or
+    allowing it to run in the background and adding a note to the prompt.
+    """
     async def execute(self, loop_data: LoopData = LoopData(), **kwargs):
+        """
+        Executes the recall wait extension.
+
+        This method checks for a running memory recall task. If one exists,
+        it either awaits its completion or, if in delayed mode, adds a message
+        to the prompt indicating that memories are being recalled in the
+        background.
+
+        Args:
+            loop_data: The current loop data.
+            **kwargs: Arbitrary keyword arguments.
+        """
 
         set = settings.get_settings()
 

@@ -3,8 +3,22 @@ from python.helpers.secrets import get_secrets_manager
 
 
 class MaskHistoryContent(Extension):
+    """
+    An extension that masks sensitive information in the content of messages
+    before they are added to the agent's history.
+    """
 
     async def execute(self, **kwargs):
+        """
+        Executes the history content masking extension.
+
+        This method retrieves the message content from the keyword arguments and
+        recursively masks any sensitive values within it.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments. Expected to contain
+                      'content_data', a dictionary with a 'content' key.
+        """
         # Get content data from kwargs
         content_data = kwargs.get("content_data")
         if not content_data:
@@ -20,7 +34,19 @@ class MaskHistoryContent(Extension):
             pass
 
     def _mask_content(self, content, secrets_mgr):
-        """Recursively mask secrets in message content."""
+        """
+        Recursively masks secrets in message content.
+
+        This function handles strings, lists, and dictionaries, traversing them
+        to find and mask sensitive values.
+
+        Args:
+            content: The content to be masked (can be str, list, or dict).
+            secrets_mgr: The secrets manager instance.
+
+        Returns:
+            The content with any sensitive information masked.
+        """
         if isinstance(content, str):
             return secrets_mgr.mask_values(content)
         elif isinstance(content, list):

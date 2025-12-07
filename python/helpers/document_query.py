@@ -33,9 +33,10 @@ DEFAULT_SEARCH_THRESHOLD = 0.5
 
 
 class DocumentQueryStore:
-    """
-    FAISS Store for document query results.
-    Manages documents identified by URI for storage, retrieval, and searching.
+    """A FAISS-based store for document query results.
+
+    This class manages documents identified by a URI for storage, retrieval,
+    and searching.
     """
 
     # Default chunking parameters
@@ -47,7 +48,14 @@ class DocumentQueryStore:
 
     @staticmethod
     def get(agent: Agent):
-        """Create a DocumentQueryStore instance for the specified agent."""
+        """Creates a DocumentQueryStore instance for the specified agent.
+
+        Args:
+            agent: The agent to create the store for.
+
+        Returns:
+            A DocumentQueryStore instance.
+        """
         if not agent or not agent.config:
             raise ValueError("Agent and agent config must be provided")
 
@@ -59,20 +67,23 @@ class DocumentQueryStore:
         self,
         agent: Agent,
     ):
-        """Initialize a DocumentQueryStore instance."""
+        """Initializes a DocumentQueryStore instance.
+
+        Args:
+            agent: The agent that this store belongs to.
+        """
         self.agent = agent
         self.vector_db: VectorDB | None = None
 
     @staticmethod
     def normalize_uri(uri: str) -> str:
-        """
-        Normalize a document URI to ensure consistent lookup.
+        """Normalizes a document URI to ensure consistent lookup.
 
         Args:
-            uri: The URI to normalize
+            uri: The URI to normalize.
 
         Returns:
-            Normalized URI
+            The normalized URI.
         """
         # Convert to lowercase
         normalized = uri.strip()  # uri.lower()
@@ -95,21 +106,22 @@ class DocumentQueryStore:
         return normalized
 
     def init_vector_db(self):
+        """Initializes the vector database."""
         return VectorDB(self.agent, cache=True)
 
     async def add_document(
         self, text: str, document_uri: str, metadata: dict | None = None
     ) -> tuple[bool, list[str]]:
-        """
-        Add a document to the store with the given URI.
+        """Adds a document to the store.
 
         Args:
-            text: The document text content
-            document_uri: The URI that uniquely identifies this document
-            metadata: Optional metadata for the document
+            text: The text content of the document.
+            document_uri: The URI that uniquely identifies the document.
+            metadata: Optional metadata for the document.
 
         Returns:
-            True if successful, False otherwise
+            A tuple containing a boolean indicating success and a list of
+            chunk IDs.
         """
         # Normalize the URI
         document_uri = self.normalize_uri(document_uri)
@@ -156,14 +168,13 @@ class DocumentQueryStore:
             return False, []
 
     async def get_document(self, document_uri: str) -> Optional[Document]:
-        """
-        Retrieve a document by its URI.
+        """Retrieves a document by its URI.
 
         Args:
-            document_uri: The URI of the document to retrieve
+            document_uri: The URI of the document to retrieve.
 
         Returns:
-            The complete document if found, None otherwise
+            The complete document if found, otherwise None.
         """
 
         # DB not initialized, no documents inside
@@ -191,14 +202,13 @@ class DocumentQueryStore:
         return Document(page_content=full_content, metadata=metadata)
 
     async def _get_document_chunks(self, document_uri: str) -> List[Document]:
-        """
-        Get all chunks for a document.
+        """Gets all chunks for a document.
 
         Args:
-            document_uri: The URI of the document
+            document_uri: The URI of the document.
 
         Returns:
-            List of document chunks
+            A list of document chunks.
         """
 
         # DB not initialized, no documents inside
@@ -218,14 +228,13 @@ class DocumentQueryStore:
         return chunks
 
     async def document_exists(self, document_uri: str) -> bool:
-        """
-        Check if a document exists in the store.
+        """Checks if a document exists in the store.
 
         Args:
-            document_uri: The URI of the document to check
+            document_uri: The URI of the document to check.
 
         Returns:
-            True if the document exists, False otherwise
+            True if the document exists, False otherwise.
         """
 
         # DB not initialized, no documents inside
@@ -239,14 +248,13 @@ class DocumentQueryStore:
         return len(chunks) > 0
 
     async def delete_document(self, document_uri: str) -> bool:
-        """
-        Delete a document from the store.
+        """Deletes a document from the store.
 
         Args:
-            document_uri: The URI of the document to delete
+            document_uri: The URI of the document to delete.
 
         Returns:
-            True if deleted, False if not found
+            True if the document was deleted, False otherwise.
         """
 
         # DB not initialized, no documents inside
@@ -278,16 +286,16 @@ class DocumentQueryStore:
     async def search_documents(
         self, query: str, limit: int = 10, threshold: float = 0.5, filter: str = ""
     ) -> List[Document]:
-        """
-        Search for documents similar to the query across the entire store.
+        """Searches for documents similar to a query.
 
         Args:
-            query: The search query string
-            limit: Maximum number of results to return
-            threshold: Minimum similarity score threshold (0-1)
+            query: The search query.
+            limit: The maximum number of results to return.
+            threshold: The minimum similarity score.
+            filter: A filter to apply to the search.
 
         Returns:
-            List of matching documents
+            A list of matching documents.
         """
 
         # DB not initialized, no documents inside
@@ -313,28 +321,26 @@ class DocumentQueryStore:
     async def search_document(
         self, document_uri: str, query: str, limit: int = 10, threshold: float = 0.5
     ) -> List[Document]:
-        """
-        Search for content within a specific document.
+        """Searches for content within a specific document.
 
         Args:
-            document_uri: The URI of the document to search within
-            query: The search query string
-            limit: Maximum number of results to return
-            threshold: Minimum similarity score threshold (0-1)
+            document_uri: The URI of the document to search within.
+            query: The search query.
+            limit: The maximum number of results to return.
+            threshold: The minimum similarity score.
 
         Returns:
-            List of matching document chunks
+            A list of matching document chunks.
         """
         return await self.search_documents(
             query, limit, threshold, f"document_uri == '{document_uri}'"
         )
 
     async def list_documents(self) -> List[str]:
-        """
-        Get a list of all document URIs in the store.
+        """Gets a list of all document URIs in the store.
 
         Returns:
-            List of document URIs
+            A list of document URIs.
         """
         # DB not initialized, no documents inside
         if not self.vector_db:
@@ -352,10 +358,17 @@ class DocumentQueryStore:
 
 
 class DocumentQueryHelper:
+    """A helper class for performing document Q&A."""
 
     def __init__(
         self, agent: Agent, progress_callback: Callable[[str], None] | None = None
     ):
+        """Initializes a DocumentQueryHelper.
+
+        Args:
+            agent: The agent to use for the Q&A.
+            progress_callback: A callback function to report progress.
+        """
         self.agent = agent
         self.store = DocumentQueryStore.get(agent)
         self.progress_callback = progress_callback or (lambda x: None)
@@ -363,6 +376,16 @@ class DocumentQueryHelper:
     async def document_qa(
         self, document_uris: List[str], questions: Sequence[str]
     ) -> Tuple[bool, str]:
+        """Performs Q&A on a set of documents.
+
+        Args:
+            document_uris: A list of URIs for the documents to query.
+            questions: A sequence of questions to ask.
+
+        Returns:
+            A tuple containing a boolean indicating success and the answer to
+            the questions.
+        """
         self.progress_callback(
             f"Starting Q&A process for {len(document_uris)} documents"
         )
@@ -442,6 +465,16 @@ class DocumentQueryHelper:
     async def document_get_content(
         self, document_uri: str, add_to_db: bool = False
     ) -> str:
+        """Gets the content of a document.
+
+        Args:
+            document_uri: The URI of the document.
+            add_to_db: Whether to add the document to the database if it is
+                       not already there.
+
+        Returns:
+            The content of the document.
+        """
         self.progress_callback(f"Fetching document content")
         await self.agent.handle_intervention()
         url = urlparse(document_uri)
@@ -548,9 +581,27 @@ class DocumentQueryHelper:
         return document_content
 
     def handle_image_document(self, document: str, scheme: str) -> str:
+        """Handles an image document.
+
+        Args:
+            document: The URI of the document.
+            scheme: The URI scheme.
+
+        Returns:
+            The content of the document.
+        """
         return self.handle_unstructured_document(document, scheme)
 
     def handle_html_document(self, document: str, scheme: str) -> str:
+        """Handles an HTML document.
+
+        Args:
+            document: The URI of the document.
+            scheme: The URI scheme.
+
+        Returns:
+            The content of the document.
+        """
         if scheme in ["http", "https"]:
             loader = AsyncHtmlLoader(web_path=document)
             parts: list[Document] = loader.load()
@@ -571,6 +622,15 @@ class DocumentQueryHelper:
         )
 
     def handle_text_document(self, document: str, scheme: str) -> str:
+        """Handles a text document.
+
+        Args:
+            document: The URI of the document.
+            scheme: The URI scheme.
+
+        Returns:
+            The content of the document.
+        """
         if scheme in ["http", "https"]:
             loader = AsyncHtmlLoader(web_path=document)
             elements: list[Document] = loader.load()
@@ -588,6 +648,15 @@ class DocumentQueryHelper:
         return "\n".join([element.page_content for element in elements])
 
     def handle_pdf_document(self, document: str, scheme: str) -> str:
+        """Handles a PDF document.
+
+        Args:
+            document: The URI of the document.
+            scheme: The URI scheme.
+
+        Returns:
+            The content of the document.
+        """
         temp_file_path = ""
         if scheme == "file":
             # Use RFC file operations to read the PDF file as binary
@@ -656,6 +725,15 @@ class DocumentQueryHelper:
             os.unlink(temp_file_path)
 
     def handle_unstructured_document(self, document: str, scheme: str) -> str:
+        """Handles an unstructured document.
+
+        Args:
+            document: The URI of the document.
+            scheme: The URI scheme.
+
+        Returns:
+            The content of the document.
+        """
         elements: list[Document] = []
         if scheme in ["http", "https"]:
             # loader = UnstructuredURLLoader(urls=[document], mode="single")

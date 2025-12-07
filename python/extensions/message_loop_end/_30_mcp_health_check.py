@@ -12,13 +12,26 @@ class McpHealthCheck(Extension):
     """Performs MCP health check at the end of each message loop"""
     
     def __init__(self, agent, **kwargs):
+        """
+        Initializes the McpHealthCheck extension.
+
+        Args:
+            agent: The agent instance.
+            **kwargs: Arbitrary keyword arguments.
+        """
         super().__init__(agent=agent, **kwargs)
         self.last_check = None
         self.check_interval = 5  # Check every 5 loops
         self.loop_count = 0
     
     async def execute(self, loop_data: LoopData = LoopData(), **kwargs) -> None:
-        """Perform MCP health check"""
+        """
+        Executes the MCP health check periodically at the end of a message loop.
+
+        Args:
+            loop_data: The current loop data.
+            **kwargs: Arbitrary keyword arguments.
+        """
         try:
             self.loop_count += 1
             
@@ -33,7 +46,12 @@ class McpHealthCheck(Extension):
             PrintStyle().print(f"MCP health check error: {e}")
     
     async def _perform_health_check(self):
-        """Perform comprehensive health check"""
+        """
+        Performs a comprehensive health check on all configured MCP servers.
+
+        It gathers health status for each server, stores the overall status,
+        logs a summary, and handles any detected issues.
+        """
         try:
             mcp_config = MCPConfig.get_instance()
             
@@ -71,7 +89,17 @@ class McpHealthCheck(Extension):
             PrintStyle().print(f"Error performing health check: {e}")
     
     async def _check_server_health(self, server) -> Dict[str, Any]:
-        """Check health of individual server"""
+        """
+        Checks the health of an individual MCP server.
+
+        This involves checking its responsiveness and tool availability.
+
+        Args:
+            server: The MCP server configuration object.
+
+        Returns:
+            A dictionary containing the health status of the server.
+        """
         server_health = {
             'server_name': server.name,
             'is_healthy': True,
@@ -103,7 +131,12 @@ class McpHealthCheck(Extension):
         return server_health
     
     def _log_health_summary(self, health_status: Dict[str, Any]):
-        """Log health check summary"""
+        """
+        Logs a summary of the MCP health check to the console.
+
+        Args:
+            health_status: A dictionary containing the health status data.
+        """
         try:
             healthy = health_status['healthy_servers']
             total = health_status['total_servers']
@@ -131,7 +164,15 @@ class McpHealthCheck(Extension):
             pass
     
     async def _handle_health_issues(self, health_status: Dict[str, Any]):
-        """Handle any health issues discovered"""
+        """
+        Handles any health issues discovered during the check.
+
+        This involves storing the list of unhealthy servers in the agent's
+        context so that the tool selector can avoid them.
+
+        Args:
+            health_status: A dictionary containing the health status data.
+        """
         try:
             unhealthy_servers = [
                 name for name, health in health_status['servers'].items()
@@ -156,7 +197,13 @@ class McpHealthCheck(Extension):
             PrintStyle().print(f"Error handling health issues: {e}")
     
     def get_health_status(self) -> Dict[str, Any]:
-        """Get current health status"""
+        """
+        Gets the current MCP health status from the agent's context.
+
+        Returns:
+            A dictionary containing the latest health status, or an empty
+            dictionary if not available.
+        """
         if hasattr(self.agent, 'context'):
             return self.agent.context.get_data('mcp_health_status') or {}
         return {}

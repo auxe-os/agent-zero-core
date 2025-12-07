@@ -12,6 +12,7 @@ from python.helpers.print_style import PrintStyle
 
 
 class FileBrowser:
+    """A class for browsing and managing files."""
     ALLOWED_EXTENSIONS = {
         'image': {'jpg', 'jpeg', 'png', 'bmp'},
         'code': {'py', 'js', 'sh', 'html', 'css'},
@@ -21,6 +22,7 @@ class FileBrowser:
     MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
 
     def __init__(self):
+        """Initializes a FileBrowser."""
         # if runtime.is_development():
         #     base_dir = files.get_base_dir()
         # else:
@@ -29,6 +31,7 @@ class FileBrowser:
         self.base_dir = Path(base_dir)
 
     def _check_file_size(self, file) -> bool:
+        """Checks if a file is within the allowed size limit."""
         try:
             file.seek(0, os.SEEK_END)
             size = file.tell()
@@ -38,6 +41,16 @@ class FileBrowser:
             return False
 
     def save_file_b64(self, current_path: str, filename: str, base64_content: str):
+        """Saves a base64-encoded file.
+
+        Args:
+            current_path: The path to save the file in.
+            filename: The name of the file.
+            base64_content: The base64-encoded content of the file.
+
+        Returns:
+            True if the file was saved successfully, False otherwise.
+        """
         try:
             # Resolve the target directory path
             target_file = (self.base_dir / current_path / filename).resolve()
@@ -54,7 +67,16 @@ class FileBrowser:
             return False
 
     def save_files(self, files: List, current_path: str = "") -> Tuple[List[str], List[str]]:
-        """Save uploaded files and return successful and failed filenames"""
+        """Saves a list of uploaded files.
+
+        Args:
+            files: A list of files to save.
+            current_path: The path to save the files in.
+
+        Returns:
+            A tuple containing two lists: the names of the successfully saved
+            files, and the names of the files that failed to save.
+        """
         successful = []
         failed = []
 
@@ -87,7 +109,15 @@ class FileBrowser:
             return successful, failed
 
     def delete_file(self, file_path: str) -> bool:
-        """Delete a file or empty directory"""
+        """Deletes a file or empty directory.
+
+        Args:
+            file_path: The path to the file or directory to delete.
+
+        Returns:
+            True if the file or directory was deleted successfully, False
+            otherwise.
+        """
         try:
             # Resolve the full path while preventing directory traversal
             full_path = (self.base_dir / file_path).resolve()
@@ -108,6 +138,7 @@ class FileBrowser:
             return False
 
     def _is_allowed_file(self, filename: str, file) -> bool:
+        """Checks if a file is allowed to be uploaded."""
         # allow any file to be uploaded in file browser
 
         # if not filename:
@@ -120,10 +151,20 @@ class FileBrowser:
         return True  # Allow the file if it passes the checks
 
     def _get_file_extension(self, filename: str) -> str:
+        """Gets the extension of a file."""
         return filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
 
     def _get_files_via_ls(self, full_path: Path) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-        """Get files and folders using ls command for better error handling"""
+        """Gets a list of files and folders in a directory using the `ls`
+        command.
+
+        Args:
+            full_path: The full path to the directory.
+
+        Returns:
+            A tuple containing two lists: a list of files and a list of
+            folders.
+        """
         files: List[Dict[str, Any]] = []
         folders: List[Dict[str, Any]] = []
 
@@ -229,6 +270,15 @@ class FileBrowser:
         return files, folders
 
     def get_files(self, current_path: str = "") -> Dict:
+        """Gets a list of files and folders in a directory.
+
+        Args:
+            current_path: The path to the directory.
+
+        Returns:
+            A dictionary containing the list of files and folders, the
+            current path, and the parent path.
+        """
         try:
             # Resolve the full path while preventing directory traversal
             full_path = (self.base_dir / current_path).resolve()
@@ -266,13 +316,23 @@ class FileBrowser:
             return {"entries": [], "current_path": "", "parent_path": ""}
 
     def get_full_path(self, file_path: str, allow_dir: bool = False) -> str:
-        """Get full file path if it exists and is within base_dir"""
+        """Gets the full path to a file if it exists and is within the base
+        directory.
+
+        Args:
+            file_path: The path to the file.
+            allow_dir: Whether to allow directories.
+
+        Returns:
+            The full path to the file.
+        """
         full_path = files.get_abs_path(self.base_dir, file_path)
         if not files.exists(full_path):
             raise ValueError(f"File {file_path} not found")
         return full_path
 
     def _get_file_type(self, filename: str) -> str:
+        """Gets the type of a file based on its extension."""
         ext = self._get_file_extension(filename)
         for file_type, extensions in self.ALLOWED_EXTENSIONS.items():
             if ext in extensions:

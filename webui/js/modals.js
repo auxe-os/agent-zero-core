@@ -1,4 +1,9 @@
 // Import the component loader and page utilities
+/**
+ * @file Manages a stack-based modal system.
+ * This module allows opening multiple modals that overlay each other,
+ * handles backdrop and z-index management, and loads modal content dynamically.
+ */
 import { importComponent } from "/js/components.js";
 
 // Modal functionality
@@ -11,7 +16,11 @@ backdrop.style.display = "none";
 backdrop.style.backdropFilter = "blur(5px)";
 document.body.appendChild(backdrop);
 
-// Function to update z-index for all modals and backdrop
+/**
+ * Updates the z-index for all modals and the backdrop to ensure correct layering.
+ * Higher-indexed modals in the stack appear on top.
+ * @private
+ */
 function updateModalZIndexes() {
   // Base z-index for modals
   const baseZIndex = 3000;
@@ -41,7 +50,12 @@ function updateModalZIndexes() {
   }
 }
 
-// Function to create a new modal element
+/**
+ * Creates and initializes a new modal element and its inner structure.
+ * @param {string} path - The path of the component to be loaded into the modal.
+ * @returns {object} A modal object containing references to its DOM elements.
+ * @private
+ */
 function createModalElement(path) {
   // Create modal element
   const newModal = document.createElement("div");
@@ -102,7 +116,12 @@ function createModalElement(path) {
   };
 }
 
-// Function to open modal with content from URL
+/**
+ * Opens a new modal and loads its content from a specified path.
+ * The modal is added to a stack, allowing multiple modals to be open.
+ * @param {string} modalPath - The path to the HTML component to load as the modal's content.
+ * @returns {Promise<void>} A promise that resolves when the modal is closed.
+ */
 export function openModal(modalPath) {
   return new Promise((resolve) => {
     try {
@@ -170,7 +189,10 @@ export function openModal(modalPath) {
   });
 }
 
-// Function to close modal
+/**
+ * Closes the topmost modal, or a specific modal if its path is provided.
+ * @param {string | null} [modalPath=null] - The path of the modal to close. If null, closes the last one opened.
+ */
 export function closeModal(modalPath = null) {
   if (modalStack.length === 0) return;
 
@@ -240,7 +262,10 @@ export function closeModal(modalPath = null) {
   }
 }
 
-// Function to scroll to element by ID within the last modal
+/**
+ * Scrolls to a specific element within the currently active (topmost) modal.
+ * @param {string} id - The ID of the element to scroll to.
+ */
 export function scrollModal(id) {
   if (!id) return;
 

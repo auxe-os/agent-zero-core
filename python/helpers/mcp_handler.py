@@ -45,6 +45,14 @@ from python.helpers.tool import Tool, Response
 
 
 def normalize_name(name: str) -> str:
+    """Normalizes a name to be a valid identifier.
+
+    Args:
+        name: The name to normalize.
+
+    Returns:
+        The normalized name.
+    """
     # Lowercase and strip whitespace
     name = name.strip().lower()
     # Replace all non-alphanumeric (unicode) chars with underscore
@@ -55,7 +63,7 @@ def normalize_name(name: str) -> str:
 
 
 def _determine_server_type(config_dict: dict) -> str:
-    """Determine the server type based on configuration, with backward compatibility."""
+    """Determines the server type based on the configuration."""
     # First check if type is explicitly specified
     if "type" in config_dict:
         server_type = config_dict["type"].lower()
@@ -83,7 +91,7 @@ def _determine_server_type(config_dict: dict) -> str:
 
 
 def _is_streaming_http_type(server_type: str) -> bool:
-    """Check if the server type is a streaming HTTP variant."""
+    """Checks if the server type is a streaming HTTP variant."""
     return server_type.lower() in [
         "http-stream",
         "streaming-http",
@@ -93,6 +101,12 @@ def _is_streaming_http_type(server_type: str) -> bool:
 
 
 def initialize_mcp(mcp_servers_config: str):
+    """Initializes the MCP configuration.
+
+    Args:
+        mcp_servers_config: A JSON string containing the MCP server
+                              configurations.
+    """
     if not MCPConfig.get_instance().is_initialized():
         try:
             MCPConfig.update(mcp_servers_config)
@@ -111,9 +125,17 @@ def initialize_mcp(mcp_servers_config: str):
 
 
 class MCPTool(Tool):
-    """MCP Tool wrapper"""
+    """A wrapper for an MCP tool."""
 
     async def execute(self, **kwargs: Any):
+        """Executes the tool.
+
+        Args:
+            **kwargs: The arguments to pass to the tool.
+
+        Returns:
+            A Response object.
+        """
         error = ""
         try:
             response: CallToolResult = await MCPConfig.get_instance().call_tool(
@@ -144,6 +166,7 @@ class MCPTool(Tool):
         return Response(message=message, break_loop=False)
 
     async def before_execution(self, **kwargs: Any):
+        """Called before the tool is executed."""
         (
             PrintStyle(
                 font_color="#1B4F72", padding=True, background_color="white", bold=True
@@ -161,6 +184,11 @@ class MCPTool(Tool):
             PrintStyle().print()
 
     async def after_execution(self, response: Response, **kwargs: Any):
+        """Called after the tool is executed.
+
+        Args:
+            response: The response from the tool.
+        """
         raw_tool_response = response.message.strip() if response.message else ""
         if not raw_tool_response:
             PrintStyle(font_color="red").print(
@@ -223,6 +251,7 @@ class MCPTool(Tool):
 
 
 class MCPServerRemote(BaseModel):
+    """Represents a remote MCP server."""
     name: str = Field(default_factory=str)
     description: Optional[str] = Field(default="Remote SSE Server")
     type: str = Field(default="sse", description="Server connection type")
@@ -237,37 +266,79 @@ class MCPServerRemote(BaseModel):
     __client: Optional["MCPClientRemote"] = PrivateAttr(default=None)
 
     def __init__(self, config: dict[str, Any]):
+        """Initializes an MCPServerRemote.
+
+        Args:
+            config: A dictionary of configuration options.
+        """
         super().__init__()
         self.__client = MCPClientRemote(self)
         self.update(config)
 
     def get_error(self) -> str:
+        """Gets the last error that occurred.
+
+        Returns:
+            The last error that occurred.
+        """
         with self.__lock:
             return self.__client.error  # type: ignore
 
     def get_log(self) -> str:
+        """Gets the log for the server.
+
+        Returns:
+            The log for the server.
+        """
         with self.__lock:
             return self.__client.get_log()  # type: ignore
 
     def get_tools(self) -> List[dict[str, Any]]:
-        """Get all tools from the server"""
+        """Gets a list of all tools from the server.
+
+        Returns:
+            A list of tools.
+        """
         with self.__lock:
             return self.__client.tools  # type: ignore
 
     def has_tool(self, tool_name: str) -> bool:
-        """Check if a tool is available"""
+        """Checks if a tool is available.
+
+        Args:
+            tool_name: The name of the tool.
+
+        Returns:
+            True if the tool is available, False otherwise.
+        """
         with self.__lock:
             return self.__client.has_tool(tool_name)  # type: ignore
 
     async def call_tool(
         self, tool_name: str, input_data: Dict[str, Any]
     ) -> CallToolResult:
-        """Call a tool with the given input data"""
+        """Calls a tool with the given input data.
+
+        Args:
+            tool_name: The name of the tool to call.
+            input_data: The input data for the tool.
+
+        Returns:
+            The result of the tool call.
+        """
         with self.__lock:
             # We already run in an event loop, dont believe Pylance
             return await self.__client.call_tool(tool_name, input_data)  # type: ignore
 
     def update(self, config: dict[str, Any]) -> "MCPServerRemote":
+        """Updates the server configuration.
+
+        Args:
+            config: A dictionary of configuration options.
+
+        Returns:
+            The updated server object.
+        """
         with self.__lock:
             for key, value in config.items():
                 if key in [
@@ -292,11 +363,13 @@ class MCPServerRemote(BaseModel):
             return asyncio.run(self.__on_update())
 
     async def __on_update(self) -> "MCPServerRemote":
+        """Called when the server configuration is updated."""
         await self.__client.update_tools()  # type: ignore
         return self
 
 
 class MCPServerLocal(BaseModel):
+    """Represents a local MCP server."""
     name: str = Field(default_factory=str)
     description: Optional[str] = Field(default="Local StdIO Server")
     type: str = Field(default="stdio", description="Server connection type")
@@ -316,37 +389,79 @@ class MCPServerLocal(BaseModel):
     __client: Optional["MCPClientLocal"] = PrivateAttr(default=None)
 
     def __init__(self, config: dict[str, Any]):
+        """Initializes an MCPServerLocal.
+
+        Args:
+            config: A dictionary of configuration options.
+        """
         super().__init__()
         self.__client = MCPClientLocal(self)
         self.update(config)
 
     def get_error(self) -> str:
+        """Gets the last error that occurred.
+
+        Returns:
+            The last error that occurred.
+        """
         with self.__lock:
             return self.__client.error  # type: ignore
 
     def get_log(self) -> str:
+        """Gets the log for the server.
+
+        Returns:
+            The log for the server.
+        """
         with self.__lock:
             return self.__client.get_log()  # type: ignore
 
     def get_tools(self) -> List[dict[str, Any]]:
-        """Get all tools from the server"""
+        """Gets a list of all tools from the server.
+
+        Returns:
+            A list of tools.
+        """
         with self.__lock:
             return self.__client.tools  # type: ignore
 
     def has_tool(self, tool_name: str) -> bool:
-        """Check if a tool is available"""
+        """Checks if a tool is available.
+
+        Args:
+            tool_name: The name of the tool.
+
+        Returns:
+            True if the tool is available, False otherwise.
+        """
         with self.__lock:
             return self.__client.has_tool(tool_name)  # type: ignore
 
     async def call_tool(
         self, tool_name: str, input_data: Dict[str, Any]
     ) -> CallToolResult:
-        """Call a tool with the given input data"""
+        """Calls a tool with the given input data.
+
+        Args:
+            tool_name: The name of the tool to call.
+            input_data: The input data for the tool.
+
+        Returns:
+            The result of the tool call.
+        """
         with self.__lock:
             # We already run in an event loop, dont believe Pylance
             return await self.__client.call_tool(tool_name, input_data)  # type: ignore
 
     def update(self, config: dict[str, Any]) -> "MCPServerLocal":
+        """Updates the server configuration.
+
+        Args:
+            config: A dictionary of configuration options.
+
+        Returns:
+            The updated server object.
+        """
         with self.__lock:
             for key, value in config.items():
                 if key in [
@@ -369,6 +484,7 @@ class MCPServerLocal(BaseModel):
             return asyncio.run(self.__on_update())
 
     async def __on_update(self) -> "MCPServerLocal":
+        """Called when the server configuration is updated."""
         await self.__client.update_tools()  # type: ignore
         return self
 
@@ -383,6 +499,7 @@ MCPServer = Annotated[
 
 
 class MCPConfig(BaseModel):
+    """A class for managing the MCP configuration."""
     servers: list[MCPServer] = Field(default_factory=list)
     disconnected_servers: list[dict[str, Any]] = Field(default_factory=list)
     __lock: ClassVar[threading.Lock] = PrivateAttr(default=threading.Lock())
@@ -391,6 +508,11 @@ class MCPConfig(BaseModel):
 
     @classmethod
     def get_instance(cls) -> "MCPConfig":
+        """Gets the singleton instance of the MCPConfig class.
+
+        Returns:
+            The singleton instance of the MCPConfig class.
+        """
         # with cls.__lock:
         if cls.__instance is None:
             cls.__instance = cls(servers_list=[])
@@ -398,11 +520,20 @@ class MCPConfig(BaseModel):
 
     @classmethod
     def wait_for_lock(cls):
+        """Waits for the lock to be released."""
         with cls.__lock:
             return
 
     @classmethod
     def update(cls, config_str: str) -> Any:
+        """Updates the MCP configuration.
+
+        Args:
+            config_str: A JSON string containing the new configuration.
+
+        Returns:
+            The updated MCPConfig instance.
+        """
         with cls.__lock:
             servers_data: List[Dict[str, Any]] = []  # Default to empty list
 
@@ -497,6 +628,14 @@ class MCPConfig(BaseModel):
 
     @classmethod
     def normalize_config(cls, servers: Any):
+        """Normalizes the server configuration.
+
+        Args:
+            servers: The server configuration to normalize.
+
+        Returns:
+            The normalized server configuration.
+        """
         normalized = []
         if isinstance(servers, list):
             for server in servers:
@@ -518,6 +657,11 @@ class MCPConfig(BaseModel):
         return normalized
 
     def __init__(self, servers_list: List[Dict[str, Any]]):
+        """Initializes an MCPConfig.
+
+        Args:
+            servers_list: A list of server configurations.
+        """
         from collections.abc import Mapping, Iterable
 
         # # DEBUG: Print the received servers_list
@@ -842,6 +986,7 @@ T = TypeVar("T")
 
 
 class MCPClientBase(ABC):
+    """An abstract base class for MCP clients."""
     # server: Union[MCPServerLocal, MCPServerRemote] # Defined in __init__
     # tools: List[dict[str, Any]] # Defined in __init__
     # No self.session, self.exit_stack, self.stdio, self.write as persistent instance fields
@@ -849,6 +994,11 @@ class MCPClientBase(ABC):
     __lock: ClassVar[threading.Lock] = threading.Lock()
 
     def __init__(self, server: Union[MCPServerLocal, MCPServerRemote]):
+        """Initializes an MCPClientBase.
+
+        Args:
+            server: The MCP server to connect to.
+        """
         self.server = server
         self.tools: List[dict[str, Any]] = []  # Tools are cached on the client instance
         self.error: str = ""
@@ -863,7 +1013,14 @@ class MCPClientBase(ABC):
         MemoryObjectReceiveStream[SessionMessage | Exception],
         MemoryObjectSendStream[SessionMessage],
     ]:
-        """Create stdio/write streams using the provided exit_stack."""
+        """Creates the stdio/write streams for the transport.
+
+        Args:
+            current_exit_stack: The async exit stack to use.
+
+        Returns:
+            A tuple containing the read and write streams.
+        """
         ...
 
     async def _execute_with_session(
@@ -871,9 +1028,14 @@ class MCPClientBase(ABC):
         coro_func: Callable[[ClientSession], Awaitable[T]],
         read_timeout_seconds=60,
     ) -> T:
-        """
-        Manages the lifecycle of an MCP session for a single operation.
-        Creates a temporary session, executes coro_func with it, and ensures cleanup.
+        """Manages the lifecycle of an MCP session for a single operation.
+
+        Args:
+            coro_func: The coroutine to execute.
+            read_timeout_seconds: The read timeout in seconds.
+
+        Returns:
+            The result of the coroutine.
         """
         operation_name = coro_func.__name__  # For logging
         # PrintStyle(font_color="cyan").print(f"MCPClientBase ({self.server.name}): Creating new session for operation '{operation_name}'...")
@@ -929,6 +1091,11 @@ class MCPClientBase(ABC):
         )
 
     async def update_tools(self) -> "MCPClientBase":
+        """Updates the list of available tools from the server.
+
+        Returns:
+            The MCPClientBase instance.
+        """
         # PrintStyle(font_color="cyan").print(f"MCPClientBase ({self.server.name}): Starting 'update_tools' operation...")
 
         async def list_tools_op(current_session: ClientSession):
@@ -968,7 +1135,14 @@ class MCPClientBase(ABC):
         return self
 
     def has_tool(self, tool_name: str) -> bool:
-        """Check if a tool is available (uses cached tools)"""
+        """Checks if a tool is available.
+
+        Args:
+            tool_name: The name of the tool.
+
+        Returns:
+            True if the tool is available, False otherwise.
+        """
         with self.__lock:
             for tool in self.tools:
                 if tool["name"] == tool_name:
@@ -976,13 +1150,26 @@ class MCPClientBase(ABC):
         return False
 
     def get_tools(self) -> List[dict[str, Any]]:
-        """Get all tools from the server (uses cached tools)"""
+        """Gets a list of all tools from the server.
+
+        Returns:
+            A list of tools.
+        """
         with self.__lock:
             return self.tools
 
     async def call_tool(
         self, tool_name: str, input_data: Dict[str, Any]
     ) -> CallToolResult:
+        """Calls a tool with the given input data.
+
+        Args:
+            tool_name: The name of the tool to call.
+            input_data: The input data for the tool.
+
+        Returns:
+            The result of the tool call.
+        """
         # PrintStyle(font_color="cyan").print(f"MCPClientBase ({self.server.name}): Preparing for 'call_tool' operation for tool '{tool_name}'.")
         if not self.has_tool(tool_name):
             PrintStyle(font_color="orange").print(
@@ -1025,6 +1212,11 @@ class MCPClientBase(ABC):
             )
 
     def get_log(self):
+        """Gets the log for the client.
+
+        Returns:
+            The log for the client.
+        """
         # read and return lines from self.log_file, do not close it
         if not hasattr(self, "log_file") or self.log_file is None:
             return ""
@@ -1037,6 +1229,7 @@ class MCPClientBase(ABC):
 
 
 class MCPClientLocal(MCPClientBase):
+    """An MCP client for local servers."""
     def __del__(self):
         # close the log file if it exists
         if hasattr(self, "log_file") and self.log_file is not None:
@@ -1052,7 +1245,7 @@ class MCPClientLocal(MCPClientBase):
         MemoryObjectReceiveStream[SessionMessage | Exception],
         MemoryObjectSendStream[SessionMessage],
     ]:
-        """Connect to an MCP server, init client and save stdio/write streams"""
+        """Creates the stdio transport for the local server."""
         server: MCPServerLocal = cast(MCPServerLocal, self.server)
 
         if not server.command:
@@ -1083,7 +1276,13 @@ class MCPClientLocal(MCPClientBase):
 
 
 class CustomHTTPClientFactory(ABC):
+    """A custom HTTP client factory."""
     def __init__(self, verify: bool = True):
+        """Initializes a CustomHTTPClientFactory.
+
+        Args:
+            verify: Whether to verify SSL certificates.
+        """
         self.verify = verify
 
     def __call__(
@@ -1092,6 +1291,16 @@ class CustomHTTPClientFactory(ABC):
         timeout: httpx.Timeout | None = None,
         auth: httpx.Auth | None = None,
     ) -> httpx.AsyncClient:
+        """Creates a new httpx.AsyncClient.
+
+        Args:
+            headers: A dictionary of headers to include in the client.
+            timeout: The timeout to use for the client.
+            auth: The authentication to use for the client.
+
+        Returns:
+            A new httpx.AsyncClient.
+        """
         # Set MCP defaults
         kwargs: dict[str, Any] = {
             "follow_redirects": True,
@@ -1115,7 +1324,13 @@ class CustomHTTPClientFactory(ABC):
 
 
 class MCPClientRemote(MCPClientBase):
+    """An MCP client for remote servers."""
     def __init__(self, server: Union[MCPServerLocal, MCPServerRemote]):
+        """Initializes an MCPClientRemote.
+
+        Args:
+            server: The MCP server to connect to.
+        """
         super().__init__(server)
         self.session_id: Optional[str] = (
             None  # Track session ID for streaming HTTP clients
@@ -1128,7 +1343,7 @@ class MCPClientRemote(MCPClientBase):
         MemoryObjectReceiveStream[SessionMessage | Exception],
         MemoryObjectSendStream[SessionMessage],
     ]:
-        """Connect to an MCP server, init client and save stdio/write streams"""
+        """Creates the stdio transport for the remote server."""
         server: MCPServerRemote = cast(MCPServerRemote, self.server)
         set = settings.get_settings()
 
@@ -1170,7 +1385,11 @@ class MCPClientRemote(MCPClientBase):
             return stdio_transport
 
     def get_session_id(self) -> Optional[str]:
-        """Get the current session ID if available (for streaming HTTP clients)."""
+        """Gets the current session ID.
+
+        Returns:
+            The current session ID, or None if it is not available.
+        """
         if self.session_id_callback is not None:
             return self.session_id_callback()
         return None

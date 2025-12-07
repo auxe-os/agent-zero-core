@@ -5,8 +5,18 @@ from python.helpers.log import LogItem
 
 
 class UpdateBehaviour(Tool):
+    """A tool for updating the agent's behaviour."""
 
     async def execute(self, adjustments="", **kwargs):
+        """Executes the tool.
+
+        Args:
+            adjustments: The adjustments to make to the agent's behaviour.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            A Response object.
+        """
 
         # stringify adjustments if needed
         if not isinstance(adjustments, str):
@@ -25,6 +35,13 @@ class UpdateBehaviour(Tool):
 
 
 async def update_behaviour(agent: Agent, log_item: LogItem, adjustments: str):
+    """Updates the agent's behaviour.
+
+    Args:
+        agent: The agent to update.
+        log_item: The log item to stream progress to.
+        adjustments: The adjustments to make to the agent's behaviour.
+    """
 
     # get system message and current ruleset
     system = agent.read_prompt("behaviour.merge.sys.md")
@@ -52,10 +69,26 @@ async def update_behaviour(agent: Agent, log_item: LogItem, adjustments: str):
 
 
 def get_custom_rules_file(agent: Agent):
+    """Gets the path to the custom rules file for the given agent.
+
+    Args:
+        agent: The agent.
+
+    Returns:
+        The path to the custom rules file.
+    """
     return files.get_abs_path(memory.get_memory_subdir_abs(agent), "behaviour.md")
 
 
 def read_rules(agent: Agent):
+    """Reads the rules for the given agent.
+
+    Args:
+        agent: The agent.
+
+    Returns:
+        The rules for the agent.
+    """
     rules_file = get_custom_rules_file(agent)
     if files.exists(rules_file):
         rules = files.read_prompt_file(rules_file)

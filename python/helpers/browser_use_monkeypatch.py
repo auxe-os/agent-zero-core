@@ -12,6 +12,17 @@ from python.helpers import dirty_json
 # intelligently constructs a valid 'data' object for the final action.
 
 def gemini_clean_and_conform(text: str):
+    """Sanitizes and conforms JSON output from Gemini.
+
+    This function handles markdown fences, aliases actions, and constructs a
+    valid 'data' object for the final action.
+
+    Args:
+        text: The text to clean and conform.
+
+    Returns:
+        The cleaned and conformed text, or None if parsing fails.
+    """
     obj = None
     try:
         # dirty_json parser is robust enough to handle markdown fences
@@ -81,11 +92,16 @@ def gemini_clean_and_conform(text: str):
 # causing a validation error with the Gemini API. This patch corrects that behavior.
 
 def _patched_fix_gemini_schema(self, schema: dict[str, Any]) -> dict[str, Any]:
-    """
-    Convert a Pydantic model to a Gemini-compatible schema.
+    """Converts a Pydantic model to a Gemini-compatible schema.
 
-    This function removes unsupported properties like 'additionalProperties' and resolves
-    $ref references that Gemini doesn't support.
+    This function removes unsupported properties like 'additionalProperties'
+    and resolves $ref references that Gemini doesn't support.
+
+    Args:
+        schema: The Pydantic model to convert.
+
+    Returns:
+        The Gemini-compatible schema.
     """
 
     # Handle $defs and $ref resolution

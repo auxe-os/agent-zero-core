@@ -14,14 +14,17 @@ _PRINTER = PrintStyle(italic=True, font_color="cyan", padding=False)
 
 
 class AgentConnection:
-    """Helper class for connecting to and communicating with other Agent Zero instances via FastA2A."""
+    """A helper class for connecting to and communicating with other Agent Zero
+    instances via FastA2A.
+    """
 
     def __init__(self, agent_url: str, timeout: int = 30, token: Optional[str] = None):
-        """Initialize connection to an agent.
+        """Initializes a connection to an agent.
 
         Args:
-            agent_url: The base URL of the agent (e.g., "https://agent.example.com")
-            timeout: Request timeout in seconds
+            agent_url: The base URL of the agent.
+            timeout: The request timeout in seconds.
+            token: The authentication token.
         """
         if not FASTA2A_CLIENT_AVAILABLE:
             raise RuntimeError("FastA2A client not available")
@@ -47,7 +50,11 @@ class AgentConnection:
         self._context_id: Optional[str] = None
 
     async def get_agent_card(self) -> Dict[str, Any]:
-        """Retrieve the agent card from the remote agent."""
+        """Retrieves the agent card from the remote agent.
+
+        Returns:
+            A dictionary containing the agent card information.
+        """
         if self._agent_card is None:
             try:
                 response = await self._http_client.get(f"{self.agent_url}/.well-known/agent.json")
@@ -79,7 +86,17 @@ class AgentConnection:
         context_id: Optional[str] = None,
         metadata: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """Send a message to the remote agent and return task response."""
+        """Sends a message to the remote agent and returns the task response.
+
+        Args:
+            message: The message to send.
+            attachments: A list of attachments to include with the message.
+            context_id: The ID of the conversation context.
+            metadata: A dictionary of metadata to include with the message.
+
+        Returns:
+            A dictionary containing the task response.
+        """
         if not self._agent_card:
             await self.get_agent_card()
 
@@ -127,13 +144,13 @@ class AgentConnection:
             raise
 
     async def get_task(self, task_id: str) -> Dict[str, Any]:
-        """Get the status and results of a task.
+        """Gets the status and results of a task.
 
         Args:
-            task_id: The ID of the task to query
+            task_id: The ID of the task to query.
 
         Returns:
-            Dictionary containing the task information
+            A dictionary containing the task information.
         """
         try:
             response = await self._a2a_client.get_task(task_id)  # type: ignore
@@ -143,15 +160,15 @@ class AgentConnection:
             raise RuntimeError(f"Failed to get task: {e}")
 
     async def wait_for_completion(self, task_id: str, poll_interval: int = 2, max_wait: int = 300) -> Dict[str, Any]:
-        """Wait for a task to complete and return the final result.
+        """Waits for a task to complete and returns the final result.
 
         Args:
-            task_id: The ID of the task to wait for
-            poll_interval: How often to check task status (seconds)
-            max_wait: Maximum time to wait (seconds)
+            task_id: The ID of the task to wait for.
+            poll_interval: How often to check the task status, in seconds.
+            max_wait: The maximum time to wait, in seconds.
 
         Returns:
-            Dictionary containing the completed task information
+            A dictionary containing the completed task information.
         """
         import asyncio
 
@@ -176,27 +193,27 @@ class AgentConnection:
         raise TimeoutError(f"Task {task_id} did not complete within {max_wait} seconds")
 
     async def close(self):
-        """Close the HTTP client connection."""
+        """Closes the HTTP client connection."""
         await self._http_client.aclose()
 
     async def __aenter__(self):
-        """Async context manager entry."""
+        """Enters the async context manager."""
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """Async context manager exit."""
+        """Exits the async context manager."""
         await self.close()
 
 
 async def connect_to_agent(agent_url: str, timeout: int = 30) -> AgentConnection:
-    """Create a connection to a remote agent.
+    """Creates a connection to a remote agent.
 
     Args:
-        agent_url: The base URL of the agent
-        timeout: Request timeout in seconds
+        agent_url: The base URL of the agent.
+        timeout: The request timeout in seconds.
 
     Returns:
-        AgentConnection instance
+        An AgentConnection instance.
     """
     connection = AgentConnection(agent_url, timeout)
     # Verify connection by retrieving agent card
@@ -205,5 +222,9 @@ async def connect_to_agent(agent_url: str, timeout: int = 30) -> AgentConnection
 
 
 def is_client_available() -> bool:
-    """Check if FastA2A client is available."""
+    """Checks if the FastA2A client is available.
+
+    Returns:
+        True if the client is available, False otherwise.
+    """
     return FASTA2A_CLIENT_AVAILABLE

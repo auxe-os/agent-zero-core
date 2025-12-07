@@ -7,6 +7,11 @@ from python.helpers import projects
 
 
 class SystemPrompt(Extension):
+    """
+    An extension responsible for assembling the main system prompt by combining
+    various components like the main instructions, tool definitions, and contextual
+    information.
+    """
 
     async def execute(
         self,
@@ -14,6 +19,17 @@ class SystemPrompt(Extension):
         loop_data: LoopData = LoopData(),
         **kwargs: Any
     ):
+        """
+        Executes the system prompt assembly extension.
+
+        This method gathers various parts of the system prompt (main, tools,
+        MCP tools, secrets, project info) and appends them to the system_prompt list.
+
+        Args:
+            system_prompt: A list to which the prompt components will be added.
+            loop_data: The current loop data.
+            **kwargs: Arbitrary keyword arguments.
+        """
         # append main system prompt and tools
         main = get_main_prompt(self.agent)
         tools = get_tools_prompt(self.agent)
@@ -32,10 +48,29 @@ class SystemPrompt(Extension):
 
 
 def get_main_prompt(agent: Agent):
+    """
+    Gets the main system prompt for the agent.
+
+    Args:
+        agent: The agent instance.
+
+    Returns:
+        The main system prompt string.
+    """
     return agent.read_prompt("agent.system.main.md")
 
 
 def get_tools_prompt(agent: Agent):
+    """
+    Gets the tools definition prompt for the agent, including vision-specific
+    tools if the model supports them.
+
+    Args:
+        agent: The agent instance.
+
+    Returns:
+        The tools prompt string.
+    """
     prompt = agent.read_prompt("agent.system.tools.md")
     if agent.config.chat_model.vision:
         prompt += "\n\n" + agent.read_prompt("agent.system.tools_vision.md")
@@ -43,6 +78,18 @@ def get_tools_prompt(agent: Agent):
 
 
 def get_mcp_tools_prompt(agent: Agent):
+    """
+    Gets the tools prompt for Multi-Context Parallel (MCP) tools.
+
+    This can either be a static list of all tools or an intelligently selected
+    subset based on the current conversation context.
+
+    Args:
+        agent: The agent instance.
+
+    Returns:
+        The MCP tools prompt string, or an empty string if no MCP servers are configured.
+    """
     mcp_config = MCPConfig.get_instance()
     if mcp_config.servers:
         pre_progress = agent.context.log.progress
@@ -111,6 +158,15 @@ def get_mcp_tools_prompt(agent: Agent):
 
 
 def get_secrets_prompt(agent: Agent):
+    """
+    Gets the prompt component that includes available secrets and variables.
+
+    Args:
+        agent: The agent instance.
+
+    Returns:
+        The secrets and variables prompt string, or an empty string on error.
+    """
     try:
         # Use lazy import to avoid circular dependencies
         from python.helpers.secrets import get_secrets_manager
@@ -125,6 +181,18 @@ def get_secrets_prompt(agent: Agent):
 
 
 def get_project_prompt(agent: Agent):
+    """
+    Gets the prompt component related to the active project.
+
+    This will either provide details about the active project or a message
+    indicating that no project is active.
+
+    Args:
+        agent: The agent instance.
+
+    Returns:
+        The project-related prompt string.
+    """
     result = agent.read_prompt("agent.system.projects.main.md")
     project_name = agent.context.get_data(projects.CONTEXT_DATA_KEY_PROJECT)
     if project_name:

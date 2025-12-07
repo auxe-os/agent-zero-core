@@ -19,11 +19,15 @@ _synth_lock = threading.Lock()  # Thread lock to prevent concurrent synthesis
 
 
 async def preload():
-    """Load the Kokoro TTS model. Safe to call multiple times."""
+    """Loads the Kokoro TTS model.
+
+    This function is safe to call multiple times.
+    """
     return await _preload()
 
 
 async def _preload():
+    """Preloads the Kokoro TTS model."""
     global _pipeline, _loading
 
     # Wait if another call is already loading
@@ -57,17 +61,32 @@ async def _preload():
 
 
 async def is_downloading():
-    """Check if the model is currently being downloaded/loaded."""
+    """Checks if the model is currently being downloaded or loaded.
+
+    Returns:
+        True if the model is being downloaded or loaded, False otherwise.
+    """
     return _loading
 
 
 def is_downloaded():
-    """Check if the model is already loaded."""
+    """Checks if the model has been downloaded.
+
+    Returns:
+        True if the model has been downloaded, False otherwise.
+    """
     return _pipeline is not None
 
 
 async def synthesize_sentences(sentences: list[str]):
-    """Generate audio for multiple sentences and return concatenated base64 audio."""
+    """Generates audio for a list of sentences.
+
+    Args:
+        sentences: A list of sentences to synthesize.
+
+    Returns:
+        A base64-encoded string of the concatenated audio.
+    """
     from python.helpers import settings
     
     # Read voice once at start of request
@@ -83,7 +102,17 @@ async def synthesize_sentences(sentences: list[str]):
 
 
 def _synthesize_sentences_sync(sentences: list[str], voice: str = "af_bella"):
-    """Synchronous wrapper for synthesis to run in thread pool."""
+    """A synchronous wrapper for the synthesis function.
+
+    This function is intended to be run in a thread pool.
+
+    Args:
+        sentences: A list of sentences to synthesize.
+        voice: The voice to use for the synthesis.
+
+    Returns:
+        A base64-encoded string of the concatenated audio.
+    """
     with _synth_lock:
         PrintStyle.standard(f"TTS: {voice}")
         
@@ -122,5 +151,13 @@ def _synthesize_sentences_sync(sentences: list[str], voice: str = "af_bella"):
 
 
 async def _synthesize_sentences(sentences: list[str], voice: str = "af_bella"):
+    """Synthesizes a list of sentences.
+
+    This function is deprecated and should not be used.
+
+    Args:
+        sentences: A list of sentences to synthesize.
+        voice: The voice to use for the synthesis.
+    """
     # Deprecated/Unused in favor of threaded execution
     pass    

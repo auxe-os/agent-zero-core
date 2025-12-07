@@ -2,7 +2,21 @@ from python.helpers.extension import Extension
 
 
 class MaskReasoningStreamEnd(Extension):
+    """
+    An extension that finalizes the reasoning stream masking process. This is
+    called after the reasoning stream has ended.
+    """
     async def execute(self, **kwargs):
+        """
+        Executes the reasoning stream end masking extension.
+
+        This method finalizes the streaming filter, which may process and
+        output any remaining buffered text. It then cleans up the filter
+        instance from the agent's data.
+
+        Args:
+            **kwargs: Arbitrary keyword arguments. Expected to contain 'agent'.
+        """
         # Get agent and finalize the streaming filter
         agent = kwargs.get("agent")
         if not agent:

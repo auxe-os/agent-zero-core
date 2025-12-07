@@ -1,3 +1,8 @@
+"""A monkey-patch for the faiss library.
+
+This patch creates a fake `cpuinfo` module to work around an issue with
+faiss on arm64 architectures with Python 3.12.
+"""
 # import sys
 # from types import ModuleType, SimpleNamespace
 

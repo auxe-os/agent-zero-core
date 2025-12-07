@@ -17,12 +17,26 @@ from python.helpers.dirty_json import DirtyJson
 
 
 class State:
+    """A class for managing the state of the browser agent."""
     @staticmethod
     async def create(agent: Agent):
+        """Creates a new State object.
+
+        Args:
+            agent: The agent that this state belongs to.
+
+        Returns:
+            A new State object.
+        """
         state = State(agent)
         return state
 
     def __init__(self, agent: Agent):
+        """Initializes a State object.
+
+        Args:
+            agent: The agent that this state belongs to.
+        """
         self.agent = agent
         self.browser_session: Optional[browser_use.BrowserSession] = None
         self.task: Optional[defer.DeferredTask] = None
@@ -31,10 +45,16 @@ class State:
         self.iter_no = 0
 
     def __del__(self):
+        """Cleans up the state when the object is deleted."""
         self.kill_task()
         files.delete_dir(self.get_user_data_dir()) # cleanup user data dir
 
     def get_user_data_dir(self):
+        """Gets the user data directory for the browser agent.
+
+        Returns:
+            The user data directory.
+        """
         return str(
             Path.home()
             / ".config"
@@ -44,6 +64,7 @@ class State:
         )
 
     async def _initialize(self):
+        """Initializes the browser session."""
         if self.browser_session:
             return
 
@@ -100,6 +121,14 @@ class State:
             await self.browser_session.browser_context.add_init_script(path=js_override) if self.browser_session else None
 
     def start_task(self, task: str):
+        """Starts a new browser agent task.
+
+        Args:
+            task: The task to start.
+
+        Returns:
+            The deferred task for the browser agent.
+        """
         if self.task and self.task.is_alive():
             self.kill_task()
 
@@ -112,6 +141,7 @@ class State:
         return self.task
 
     def kill_task(self):
+        """Kills the current browser agent task."""
         if self.task:
             self.task.kill(terminate_thread=True)
             self.task = None
@@ -207,8 +237,19 @@ class State:
 
 
 class BrowserAgent(Tool):
+    """A tool for browsing the web."""
 
     async def execute(self, message="", reset="", **kwargs):
+        """Executes the tool.
+
+        Args:
+            message: The message to send to the browser agent.
+            reset: Whether to reset the browser agent's state.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            A Response object.
+        """
         self.guid = self.agent.context.generate_id() # short random id
         reset = str(reset).lower().strip() == "true"
         await self.prepare_state(reset=reset)
@@ -327,6 +368,7 @@ class BrowserAgent(Tool):
         return Response(message=answer_text, break_loop=False)
 
     def get_log_object(self):
+        """Gets the log object for the tool."""
         return self.agent.context.log.log(
             type="browser",
             heading=f"icon://captive_portal {self.agent.agent_name}: Calling Browser Agent",
@@ -335,6 +377,11 @@ class BrowserAgent(Tool):
         )
 
     async def get_update(self):
+        """Gets an update from the browser agent.
+
+        Returns:
+            A dictionary containing the log and a screenshot.
+        """
         await self.prepare_state()
 
         result = {}
@@ -371,6 +418,11 @@ class BrowserAgent(Tool):
         return result
 
     async def prepare_state(self, reset=False):
+        """Prepares the state of the browser agent.
+
+        Args:
+            reset: Whether to reset the state.
+        """
         self.state = self.agent.get_data("_browser_agent_state")
         if reset and self.state:
             self.state.kill_task()
@@ -379,6 +431,11 @@ class BrowserAgent(Tool):
         self.agent.set_data("_browser_agent_state", self.state)
 
     def update_progress(self, text):
+        """Updates the progress of the tool.
+
+        Args:
+            text: The progress text.
+        """
         text = self._mask(text)
         short = text.split("\n")[-1]
         if len(short) > 50:
@@ -389,6 +446,7 @@ class BrowserAgent(Tool):
         self.agent.context.log.set_progress(progress)
 
     def _mask(self, text: str) -> str:
+        """Masks sensitive data in the given text."""
         try:
             return get_secrets_manager(self.agent.context).mask_values(text or "")
         except Exception as e:
@@ -400,6 +458,14 @@ class BrowserAgent(Tool):
 
 
 def get_use_agent_log(use_agent: browser_use.Agent | None):
+    """Gets the log from a browser_use.Agent.
+
+    Args:
+        use_agent: The browser_use.Agent to get the log from.
+
+    Returns:
+        A list of log messages.
+    """
     result = ["🚦 Starting task"]
     if use_agent:
         action_results = use_agent.history.action_results() or []
